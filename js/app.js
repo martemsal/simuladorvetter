@@ -7,6 +7,13 @@ let currentDev = DEVELOPMENTS_DATA[9]; // Padrão: Bal Harbour (40/60)
 let extraLines = []; // Linhas adicionais de negociação personalizadas
 let paymentChart = null;
 
+// Modo de cálculo das parcelas ('pct' ou 'unit') para preservar a exatidão da digitação manual
+let monthlyCalcMode = 'pct';
+let lastExplicitMonthlyUnit = 0;
+
+let boostCalcMode = 'pct';
+let lastExplicitBoostUnit = 0;
+
 // ==========================================================================
 // FORMATAÇÃO E HELPERS MONETÁRIOS (MÁSCARAS BRL)
 // ==========================================================================
@@ -166,12 +173,15 @@ export function selectDevelopment(devId) {
   }
 
   document.getElementById('monthlyPctRange').value = currentDev.defaultMonthlyPct;
-  document.getElementById('monthlyPctInput').value = currentDev.defaultMonthlyPct.toFixed(1);
+  document.getElementById('monthlyPctInput').value = currentDev.defaultMonthlyPct.toFixed(2);
 
   document.getElementById('boostPctRange').value = currentDev.defaultBoostPct;
-  document.getElementById('boostPctInput').value = currentDev.defaultBoostPct.toFixed(1);
+  document.getElementById('boostPctInput').value = currentDev.defaultBoostPct.toFixed(2);
   document.getElementById('boostCountInput').value = currentDev.defaultBoostCount;
-  document.getElementById('keysPctInput').value = currentDev.standardKeysPct.toFixed(1);
+  document.getElementById('keysPctInput').value = currentDev.standardKeysPct.toFixed(2);
+
+  monthlyCalcMode = 'pct';
+  boostCalcMode = 'pct';
 
   const entryCountInput = document.getElementById('entryCountInput');
   if (entryCountInput) entryCountInput.value = '1';
@@ -351,18 +361,85 @@ export function calculate() {
   });
 
   // 3. Leitura e Limites de Mensais e Balões
-  let monthlyPct = parseFloat(document.getElementById('monthlyPctRange').value) || 0;
-  let monthlyCount = parseInt(document.getElementById('monthlyCountInput').value) || 1;
+  const monthlyCount = Math.max(1, parseInt(document.getElementById('monthlyCountInput').value) || 1);
+  const boostCount = Math.max(0, parseInt(document.getElementById('boostCountInput').value) || 0);
 
-  let boostPct = parseFloat(document.getElementById('boostPctRange').value) || 0;
-  let boostCount = parseInt(document.getElementById('boostCountInput').value) || 0;
+  let monthlyTotal = 0;
+  let monthlyUnit = 0;
+  let monthlyPct = 0;
+
+  if (monthlyCalcMode === 'unit') {
+    monthlyUnit = lastExplicitMonthlyUnit;
+    monthlyTotal = monthlyUnit * monthlyCount;
+    monthlyPct = unitPrice > 0 ? (monthlyTotal / unitPrice) * 100 : 0;
+  } else {
+    monthlyPct = parseFloat(document.getElementById('monthlyPctRange').value) || 0;
+    monthlyTotal = (unitPrice * monthlyPct) / 100;
+    monthlyUnit = monthlyCount > 0 ? monthlyTotal / monthlyCount : 0;
+    lastExplicitMonthlyUnit = monthlyUnit;
+  }
+
+  let boostTotal = 0;
+  let boostUnit = 0;
+  let boostPct = 0;
+
+  if (boostCalcMode === 'unit') {
+    boostUnit = lastExplicitBoostUnit;
+    boostTotal = boostUnit * boostCount;
+    boostPct = unitPrice > 0 ? (boostTotal / unitPrice) * 100 : 0;
+  } else {
+    boostPct = parseFloat(document.getElementById('boostPctRange').value) || 0;
+    boostTotal = (unitPrice * boostPct) / 100;
+    boostUnit = boostCount > 0 ? boostTotal / boostCount : 0;
+    lastExplicitBoostUnit = boostUnit;
+  }
 
   // Garante que Entrada + Mensais + Balões + Extras não passem de 100%
-  if (entryPct + monthlyPct + boostPct + extraLinesTotalPct > 100) {
-    const overflow = (entryPct + monthlyPct + boostPct + extraLinesTotalPct) - 100;
+  const sumObra = entryPct + monthlyPct + boostPct + extraLinesTotalPct;
+  if (sumObra > 100) {
+    const overflow = sumObra - 100;
     monthlyPct = Math.max(0, monthlyPct - overflow);
-    document.getElementById('monthlyPctRange').value = monthlyPct;
-    document.getElementById('monthlyPctInput').value = monthlyPct.toFixed(1);
+    monthlyTotal = (unitPrice * monthlyPct) / 100;
+    monthlyUnit = monthlyCount > 0 ? monthlyTotal / monthlyCount : 0;
+    if (monthlyCalcMode === 'unit') {
+      lastExplicitMonthlyUnit = monthlyUnit;
+    }
+  }
+
+  // Atualiza controles de Mensais
+  const monthlyPctRange = document.getElementById('monthlyPctRange');
+  if (monthlyPctRange) {
+    monthlyPctRange.value = monthlyPct;
+  }
+  const monthlyPctInput = document.getElementById('monthlyPctInput');
+  if (monthlyPctInput && document.activeElement !== monthlyPctInput) {
+    monthlyPctInput.value = monthlyPct.toFixed(2);
+  }
+  const monthlyValueInput = document.getElementById('monthlyValueInput');
+  if (monthlyValueInput && document.activeElement !== monthlyValueInput) {
+    monthlyValueInput.value = formatNumberToBRLInput(monthlyUnit);
+  }
+  const monthlyUnitDetail = document.getElementById('monthlyUnitDetail');
+  if (monthlyUnitDetail) {
+    monthlyUnitDetail.innerText = `Subtotal: ${formatCurrency(monthlyTotal)}`;
+  }
+
+  // Atualiza controles de Balões
+  const boostPctRange = document.getElementById('boostPctRange');
+  if (boostPctRange) {
+    boostPctRange.value = boostPct;
+  }
+  const boostPctInput = document.getElementById('boostPctInput');
+  if (boostPctInput && document.activeElement !== boostPctInput) {
+    boostPctInput.value = boostPct.toFixed(2);
+  }
+  const boostValueInput = document.getElementById('boostValueInput');
+  if (boostValueInput && document.activeElement !== boostValueInput) {
+    boostValueInput.value = formatNumberToBRLInput(boostUnit);
+  }
+  const boostUnitDetail = document.getElementById('boostUnitDetail');
+  if (boostUnitDetail) {
+    boostUnitDetail.innerText = boostCount > 0 ? `Subtotal: ${formatCurrency(boostTotal)}` : 'Sem balões programados';
   }
 
   // Atualiza limites dinâmicos dos sliders
@@ -374,37 +451,12 @@ export function calculate() {
 
   const keysPctInput = document.getElementById('keysPctInput');
   if (keysPctInput && document.activeElement !== keysPctInput) {
-    keysPctInput.value = keysPct.toFixed(1);
+    keysPctInput.value = keysPct.toFixed(2);
   }
 
   const keysValueInput = document.getElementById('keysValueInput');
   if (keysValueInput && document.activeElement !== keysValueInput) {
     keysValueInput.value = formatNumberToBRLInput(keysValue);
-  }
-
-  // 5. Totais Mensais e Balões em R$
-  const monthlyTotal = (unitPrice * monthlyPct) / 100;
-  const monthlyUnit = monthlyCount > 0 ? monthlyTotal / monthlyCount : 0;
-  
-  const monthlyValueInput = document.getElementById('monthlyValueInput');
-  if (monthlyValueInput && document.activeElement !== monthlyValueInput) {
-    monthlyValueInput.value = formatNumberToBRLInput(monthlyTotal);
-  }
-  const monthlyUnitDetail = document.getElementById('monthlyUnitDetail');
-  if (monthlyUnitDetail) {
-    monthlyUnitDetail.innerText = `${monthlyCount}x de ${formatCurrency(monthlyUnit)}/mês`;
-  }
-
-  const boostTotal = (unitPrice * boostPct) / 100;
-  const boostUnit = boostCount > 0 ? boostTotal / boostCount : 0;
-
-  const boostValueInput = document.getElementById('boostValueInput');
-  if (boostValueInput && document.activeElement !== boostValueInput) {
-    boostValueInput.value = formatNumberToBRLInput(boostTotal);
-  }
-  const boostUnitDetail = document.getElementById('boostUnitDetail');
-  if (boostUnitDetail) {
-    boostUnitDetail.innerText = boostCount > 0 ? `${boostCount}x de ${formatCurrency(boostUnit)}/balão` : 'Sem balões programados';
   }
 
   const deliveryDateVal = document.getElementById('deliveryDate').value;
@@ -853,13 +905,16 @@ function bindEvents() {
 
       if (remainingObra >= currentBoost) {
         const newMonthly = remainingObra - currentBoost;
+        monthlyCalcMode = 'pct';
         document.getElementById('monthlyPctRange').value = newMonthly;
-        document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+        document.getElementById('monthlyPctInput').value = newMonthly.toFixed(2);
       } else {
+        monthlyCalcMode = 'pct';
         document.getElementById('monthlyPctRange').value = 0;
-        document.getElementById('monthlyPctInput').value = '0.0';
+        document.getElementById('monthlyPctInput').value = '0.00';
+        boostCalcMode = 'pct';
         document.getElementById('boostPctRange').value = remainingObra;
-        document.getElementById('boostPctInput').value = remainingObra.toFixed(1);
+        document.getElementById('boostPctInput').value = remainingObra.toFixed(2);
       }
     }
 
@@ -885,6 +940,7 @@ function bindEvents() {
   const monthlyPctRange = document.getElementById('monthlyPctRange');
 
   monthlyPctInput.addEventListener('input', (e) => {
+    monthlyCalcMode = 'pct';
     let pct = parseFloat(e.target.value) || 0;
     const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
     const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
@@ -892,35 +948,27 @@ function bindEvents() {
 
     // Trava de 100%
     pct = Math.min(pct, Math.max(0, 100 - entry - boost - extras));
-    e.target.value = pct.toFixed(1);
     monthlyPctRange.value = pct;
     calculate();
   });
 
   monthlyPctRange.addEventListener('input', (e) => {
+    monthlyCalcMode = 'pct';
     const pct = parseFloat(e.target.value) || 0;
-    monthlyPctInput.value = pct.toFixed(1);
+    document.getElementById('monthlyPctInput').value = pct.toFixed(2);
     calculate();
   });
 
-  // VALOR EM R$ DAS MENSAIS MANUAL
+  // VALOR UNITÁRIO EM R$ DAS MENSAIS (MULTIPLICA PELAS PARCELAS)
   const monthlyValueInput = document.getElementById('monthlyValueInput');
   if (monthlyValueInput) {
     monthlyValueInput.addEventListener('input', (e) => {
       const rawDigits = e.target.value.replace(/\D/g, '');
-      const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
-      e.target.value = formatNumberToBRLInput(num);
+      const unitVal = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
+      e.target.value = formatNumberToBRLInput(unitVal);
 
-      const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
-      let pct = price > 0 ? (num / price) * 100 : 0;
-
-      const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
-      const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
-      const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
-
-      pct = Math.min(pct, Math.max(0, 100 - entry - boost - extras));
-      document.getElementById('monthlyPctRange').value = pct;
-      document.getElementById('monthlyPctInput').value = pct.toFixed(1);
+      monthlyCalcMode = 'unit';
+      lastExplicitMonthlyUnit = unitVal;
 
       calculate();
     });
@@ -933,6 +981,7 @@ function bindEvents() {
   const boostPctRange = document.getElementById('boostPctRange');
 
   boostPctInput.addEventListener('input', (e) => {
+    boostCalcMode = 'pct';
     let pct = parseFloat(e.target.value) || 0;
     const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
     const monthly = parseFloat(document.getElementById('monthlyPctInput').value) || 0;
@@ -940,35 +989,27 @@ function bindEvents() {
 
     // Trava de 100%
     pct = Math.min(pct, Math.max(0, 100 - entry - monthly - extras));
-    e.target.value = pct.toFixed(1);
     boostPctRange.value = pct;
     calculate();
   });
 
   boostPctRange.addEventListener('input', (e) => {
+    boostCalcMode = 'pct';
     const pct = parseFloat(e.target.value) || 0;
-    boostPctInput.value = pct.toFixed(1);
+    document.getElementById('boostPctInput').value = pct.toFixed(2);
     calculate();
   });
 
-  // VALOR EM R$ DOS REFORÇOS / BALÕES MANUAL
+  // VALOR UNITÁRIO EM R$ DOS REFORÇOS / BALÕES (MULTIPLICA PELOS BALÕES)
   const boostValueInput = document.getElementById('boostValueInput');
   if (boostValueInput) {
     boostValueInput.addEventListener('input', (e) => {
       const rawDigits = e.target.value.replace(/\D/g, '');
-      const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
-      e.target.value = formatNumberToBRLInput(num);
+      const unitVal = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
+      e.target.value = formatNumberToBRLInput(unitVal);
 
-      const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
-      let pct = price > 0 ? (num / price) * 100 : 0;
-
-      const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
-      const monthly = parseFloat(document.getElementById('monthlyPctInput').value) || 0;
-      const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
-
-      pct = Math.min(pct, Math.max(0, 100 - entry - monthly - extras));
-      document.getElementById('boostPctRange').value = pct;
-      document.getElementById('boostPctInput').value = pct.toFixed(1);
+      boostCalcMode = 'unit';
+      lastExplicitBoostUnit = unitVal;
 
       calculate();
     });
@@ -989,8 +1030,9 @@ function bindEvents() {
 
       // Reajusta mensais para absorver a diferença e manter 100%
       const newMonthly = Math.max(0, 100 - targetKeys - entry - boost - extras);
+      monthlyCalcMode = 'pct';
       document.getElementById('monthlyPctRange').value = newMonthly;
-      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(2);
 
       calculate();
     });
@@ -1008,15 +1050,16 @@ function bindEvents() {
       let targetKeys = price > 0 ? (num / price) * 100 : 0;
       targetKeys = Math.min(100, Math.max(0, targetKeys));
 
-      document.getElementById('keysPctInput').value = targetKeys.toFixed(1);
+      document.getElementById('keysPctInput').value = targetKeys.toFixed(2);
 
       const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
       const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
       const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
 
       const newMonthly = Math.max(0, 100 - targetKeys - entry - boost - extras);
+      monthlyCalcMode = 'pct';
       document.getElementById('monthlyPctRange').value = newMonthly;
-      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(2);
 
       calculate();
     });
@@ -1032,8 +1075,9 @@ function bindEvents() {
       const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
 
       const newMonthly = Math.max(0, 100 - targetKeys - entry - boost - extras);
+      monthlyCalcMode = 'pct';
       document.getElementById('monthlyPctRange').value = newMonthly;
-      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(2);
 
       calculate();
     });

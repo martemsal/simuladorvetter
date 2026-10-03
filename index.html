@@ -319,14 +319,14 @@
                 </label>
                 <!-- Percentual Editável Manualmente -->
                 <div class="flex items-center gap-1 bg-[#181d24] border border-[#2d3644] px-1.5 py-0.5 rounded-lg focus-within:border-[#ffb700]">
-                  <input type="number" id="monthlyPctInput" step="0.1" min="0" max="100" value="45.0" class="w-16 bg-transparent text-[#ffb700] font-bold font-mono text-xs text-right focus:outline-none">
+                  <input type="number" id="monthlyPctInput" step="0.01" min="0" max="100" value="45.00" class="w-16 bg-transparent text-[#ffb700] font-bold font-mono text-xs text-right focus:outline-none">
                   <span class="text-[#ffb700] font-bold text-xs">%</span>
                 </div>
               </div>
 
               <div class="grid grid-cols-12 gap-2 items-center">
                 <div class="col-span-4">
-                  <input type="range" id="monthlyPctRange" min="0" max="80" step="0.5" value="45" class="w-full accent-[#ffb700] cursor-pointer">
+                  <input type="range" id="monthlyPctRange" min="0" max="80" step="0.1" value="45" class="w-full accent-[#ffb700] cursor-pointer" title="Ajuste o percentual das mensais">
                 </div>
                 <div class="col-span-3">
                   <div class="flex items-center gap-1">
@@ -337,15 +337,15 @@
                 <div class="col-span-5">
                   <div class="relative">
                     <span class="absolute left-2.5 top-1.5 text-slate-400 text-xs font-semibold">R$</span>
-                    <input type="text" id="monthlyValueInput" inputmode="numeric" value="942.176,57" placeholder="0,00" title="Digite o valor total das mensais em R$" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg pl-8 pr-2 py-1.5 text-[#ffb700] font-mono text-right text-xs focus:outline-none focus:border-[#ffb700]">
+                    <input type="text" id="monthlyValueInput" inputmode="numeric" value="21.413,10" placeholder="0,00" title="Valor unitário de cada parcela mensal (multiplica pela quantidade)" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg pl-8 pr-2 py-1.5 text-[#ffb700] font-mono text-right text-xs focus:outline-none focus:border-[#ffb700]">
                   </div>
                 </div>
               </div>
               <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
                 <span class="flex items-center gap-1">
-                  <i class="fa-solid fa-calendar-days text-[#ffb700]"></i> Prazo até a entrega
+                  <i class="fa-solid fa-calendar-days text-[#ffb700]"></i> Fluxo até a entrega
                 </span>
-                <span id="monthlyUnitDetail" class="font-mono text-slate-300 font-semibold">44x de R$ 21.413,10/mês</span>
+                <span id="monthlyUnitDetail" class="font-mono text-[#ffb700] font-semibold">Subtotal: R$ 942.176,57</span>
               </div>
             </div>
 
@@ -357,31 +357,31 @@
                 </label>
                 <!-- Percentual Editável Manualmente -->
                 <div class="flex items-center gap-1 bg-[#181d24] border border-[#2d3644] px-1.5 py-0.5 rounded-lg focus-within:border-sky-400">
-                  <input type="number" id="boostPctInput" step="0.1" min="0" max="60" value="20.0" class="w-16 bg-transparent text-sky-400 font-bold font-mono text-xs text-right focus:outline-none">
+                  <input type="number" id="boostPctInput" step="0.01" min="0" max="60" value="20.00" class="w-16 bg-transparent text-sky-400 font-bold font-mono text-xs text-right focus:outline-none">
                   <span class="text-sky-400 font-bold text-xs">%</span>
                 </div>
               </div>
 
               <div class="grid grid-cols-12 gap-2 items-center">
                 <div class="col-span-4">
-                  <input type="range" id="boostPctRange" min="0" max="50" step="0.5" value="20" class="w-full accent-sky-400 cursor-pointer">
+                  <input type="range" id="boostPctRange" min="0" max="50" step="0.1" value="20" class="w-full accent-sky-400 cursor-pointer" title="Ajuste o percentual dos reforços anuais">
                 </div>
                 <div class="col-span-3">
                   <div class="flex items-center gap-1">
-                    <input type="number" id="boostCountInput" value="4" min="0" max="10" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg px-2 py-1.5 text-slate-100 font-mono text-center text-xs focus:outline-none focus:border-sky-400">
+                    <input type="number" id="boostCountInput" value="4" min="0" max="10" title="Quantidade de balões" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg px-2 py-1.5 text-slate-100 font-mono text-center text-xs focus:outline-none focus:border-sky-400">
                     <span class="text-slate-400 text-[10px]">balões</span>
                   </div>
                 </div>
                 <div class="col-span-5">
                   <div class="relative">
                     <span class="absolute left-2.5 top-1.5 text-slate-400 text-xs font-semibold">R$</span>
-                    <input type="text" id="boostValueInput" inputmode="numeric" value="418.745,14" placeholder="0,00" title="Digite o valor total dos balões em R$" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg pl-8 pr-2 py-1.5 text-sky-300 font-mono text-right text-xs focus:outline-none focus:border-sky-400">
+                    <input type="text" id="boostValueInput" inputmode="numeric" value="104.686,29" placeholder="0,00" title="Valor unitário de cada balão anual (multiplica pela quantidade)" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg pl-8 pr-2 py-1.5 text-sky-300 font-mono text-right text-xs focus:outline-none focus:border-sky-400">
                   </div>
                 </div>
               </div>
               <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
                 <span>Reforço anual programado</span>
-                <span id="boostUnitDetail" class="font-mono text-slate-300 font-semibold">4x de R$ 104.686,29/balão</span>
+                <span id="boostUnitDetail" class="font-mono text-sky-300 font-semibold">Subtotal: R$ 418.745,14</span>
               </div>
             </div>
 
@@ -415,7 +415,7 @@
                 </label>
                 <!-- Percentual Editável das Chaves -->
                 <div class="flex items-center gap-1 bg-[#181d24] border border-[#2d3644] px-1.5 py-0.5 rounded-lg focus-within:border-[#ffb700]">
-                  <input type="number" id="keysPctInput" step="0.1" min="0" max="100" value="60.0" class="w-16 bg-transparent text-[#ffb700] font-black font-mono text-xs text-right focus:outline-none">
+                  <input type="number" id="keysPctInput" step="0.01" min="0" max="100" value="60.00" class="w-16 bg-transparent text-[#ffb700] font-black font-mono text-xs text-right focus:outline-none">
                   <span class="text-[#ffb700] font-bold text-xs">%</span>
                 </div>
               </div>
