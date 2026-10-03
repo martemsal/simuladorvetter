@@ -200,6 +200,14 @@
         <div><strong>Área de Lazer:</strong> <span id="printDevLeisure">1.400 m²</span></div>
         <div><strong>Fluxo Limite:</strong> <span id="printDevFlow">40/60</span></div>
       </div>
+
+      <!-- Status de Aprovação Comercial no PDF -->
+      <div class="mt-2 pt-1.5 border-t border-slate-100 flex justify-between items-center text-[10px]">
+        <span id="printComplianceStamp" class="font-bold px-2.5 py-0.5 rounded border border-slate-400 bg-slate-50 text-slate-800">
+          PROPOSTA EM CONFORMIDADE COM A TABELA OFICIAL
+        </span>
+        <span class="text-slate-500">Documento gerado pelo Simulador Vetter</span>
+      </div>
     </div>
 
     <!-- ====================================================================
@@ -373,18 +381,28 @@
             </div>
 
             <!-- 4. Saldo Residual nas Chaves -->
-            <div class="bg-[#ffb700]/10 p-3.5 rounded-xl border border-[#ffb700]/40">
-              <div class="flex justify-between items-center mb-1">
-                <label class="text-[#ffb700] font-black flex items-center gap-1.5">
-                  <i class="fa-solid fa-key text-[#ffb700]"></i> 4. Saldo Final nas Chaves (Residual)
+            <div id="keysBox" class="bg-[#111418] p-3.5 rounded-xl border border-[#2d3644] transition-all">
+              <div class="flex justify-between items-center mb-1.5">
+                <label class="text-[#ffb700] font-black flex items-center gap-1.5 text-xs">
+                  <i class="fa-solid fa-key text-[#ffb700]"></i> 4. Saldo Final nas Chaves
                 </label>
-                <span id="keysPctLabel" class="text-[#ffb700] font-black font-mono text-xs">23.06%</span>
+                <!-- Percentual Editável das Chaves -->
+                <div class="flex items-center gap-1 bg-[#181d24] border border-[#2d3644] px-1.5 py-0.5 rounded-lg focus-within:border-[#ffb700]">
+                  <input type="number" id="keysPctInput" step="0.1" min="0" max="100" value="60.0" class="w-16 bg-transparent text-[#ffb700] font-black font-mono text-xs text-right focus:outline-none">
+                  <span class="text-[#ffb700] font-bold text-xs">%</span>
+                </div>
               </div>
-              <p class="text-[10px] text-slate-400 mb-2">Ajustado automaticamente para que o fechamento totalize exatamente 100%.</p>
+
+              <div class="flex items-center justify-between text-[11px] text-slate-400 mb-2">
+                <span>Padrão de Tabela: <strong id="keysStandardLabel" class="text-white font-mono">60.00%</strong></span>
+                <button type="button" id="btnLockTableKeys" class="text-xs text-[#ffb700] hover:text-[#ffc833] underline font-semibold flex items-center gap-1">
+                  <i class="fa-solid fa-rotate-left text-[10px]"></i> Fixar no Padrão
+                </button>
+              </div>
               
-              <div class="flex items-center justify-between font-mono bg-[#111418] p-2.5 rounded-lg border border-[#2d3644]">
+              <div class="flex items-center justify-between font-mono bg-[#181d24] p-2.5 rounded-lg border border-[#2d3644]">
                 <span class="text-slate-400 text-xs">Valor das Chaves:</span>
-                <span id="keysValueDisplay" class="text-[#ffb700] font-black text-sm">R$ 482.804,01</span>
+                <span id="keysValueDisplay" class="text-[#ffb700] font-black text-sm">R$ 0,00</span>
               </div>
             </div>
 
@@ -399,7 +417,25 @@
       </div>
 
       <!-- COLUNA DA DIREITA: PRÉVIA DA PROPOSTA & RELATÓRIO (7 cols) -->
-      <div class="lg:col-span-7 space-y-6 print-full-width">
+      <div class="lg:col-span-7 space-y-5 print-full-width">
+
+        <!-- ==============================================================
+             BANNER DE CONFORMIDADE COM O FLUXO DE TABELA
+             ============================================================== -->
+        <div id="proposalComplianceBanner" class="p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg bg-emerald-950/40 border-emerald-500/40 text-emerald-300">
+          <div class="flex items-center gap-3">
+            <div id="complianceIconContainer" class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+              <i id="complianceIcon" class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+              <h4 id="complianceTitle" class="text-xs font-bold text-white tracking-tight">Proposta em Conformidade</h4>
+              <p id="complianceDesc" class="text-[11px] text-slate-300">Condições dentro da política comercial padrão da Vetter.</p>
+            </div>
+          </div>
+          <div id="complianceBadge" class="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider border border-emerald-500/40 bg-emerald-500/20 text-emerald-300">
+            APROVADA
+          </div>
+        </div>
 
         <!-- Card de Resumo da Proposta -->
         <div class="bg-gradient-to-r from-[#181d24] via-[#1b212a] to-[#181d24] border border-[#2d3644] rounded-2xl p-6 shadow-xl relative overflow-hidden print-card">
@@ -437,9 +473,13 @@
               <span id="cardBoostUnit" class="text-sm font-bold text-sky-300 font-mono">R$ 104.686,29</span>
               <span id="cardBoostSub" class="text-[10px] text-slate-400 block">4x balões</span>
             </div>
-            <div class="bg-[#111418] p-3 rounded-xl border border-[#2d3644]">
-              <span class="text-[10px] uppercase font-semibold text-slate-400 block">Nas Chaves</span>
-              <span id="cardKeys" class="text-sm font-bold text-[#ffb700] font-mono">R$ 482.804,01</span>
+            <!-- Card das Chaves com alerta de aprovação dinâmico -->
+            <div id="cardKeysContainer" class="bg-[#111418] p-3 rounded-xl border border-[#2d3644] transition-all">
+              <div class="flex justify-between items-center">
+                <span class="text-[10px] uppercase font-semibold text-slate-400 block">Nas Chaves</span>
+                <span id="cardKeysStatusIndicator" class="hidden text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#ffb700]/20 text-[#ffb700] border border-[#ffb700]/40">Acima Tabela</span>
+              </div>
+              <span id="cardKeys" class="text-sm font-bold text-[#ffb700] font-mono mt-0.5 block">R$ 482.804,01</span>
               <span id="cardKeysSub" class="text-[10px] text-slate-400 block">23.06% final</span>
             </div>
           </div>

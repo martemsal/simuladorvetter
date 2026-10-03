@@ -3,7 +3,7 @@ import { DEVELOPMENTS_DATA } from './developments.js';
 // ==========================================================================
 // ESTADO GLOBAL DA APLICAÇÃO
 // ==========================================================================
-let currentDev = DEVELOPMENTS_DATA[9]; // Padrão: Bal Harbour
+let currentDev = DEVELOPMENTS_DATA[9]; // Padrão: Bal Harbour (40/60)
 let extraLines = []; // Linhas adicionais de negociação personalizadas
 let paymentChart = null;
 
@@ -23,7 +23,6 @@ export function formatPct(val) {
   return (val || 0).toFixed(2) + '%';
 }
 
-// Converte número em formato digitável BRL: 2093725.72 -> "2.093.725,72"
 export function formatNumberToBRLInput(val) {
   if (val === null || val === undefined || isNaN(val)) return '0,00';
   return Number(val).toLocaleString('pt-BR', {
@@ -32,7 +31,6 @@ export function formatNumberToBRLInput(val) {
   });
 }
 
-// Converte string BRL formatada ("2.093.725,72") para float puro: 2093725.72
 export function parseBRLInputToNumber(str) {
   if (!str) return 0;
   const cleanDigits = String(str).replace(/\D/g, '');
@@ -47,7 +45,6 @@ export function getTodayYearMonth() {
   return `${year}-${month}`;
 }
 
-// Calcula meses corridos entre duas datas no formato YYYY-MM
 export function calculateMonthsDiff(startDateStr, endDateStr) {
   if (!endDateStr) return 36;
   const [sy, sm] = startDateStr.split('-').map(Number);
@@ -56,7 +53,6 @@ export function calculateMonthsDiff(startDateStr, endDateStr) {
   return diff > 0 ? diff : 1;
 }
 
-// Formata ano-mês (ex: 2030-05) para abreviado pt-BR (ex: Mai/2030)
 export function formatMonthYear(ymStr) {
   if (!ymStr) return 'Pronto para morar';
   const [year, month] = ymStr.split('-').map(Number);
@@ -110,6 +106,9 @@ function renderDevelopmentCard(dev) {
   document.getElementById('printDevFloors').innerText = dev.floors ? `${dev.floors} Pav.` : '-';
   document.getElementById('printDevLeisure').innerText = dev.leisureArea;
   document.getElementById('printDevFlow').innerText = dev.limitFlow;
+
+  // Atualiza o indicador padrão de chaves do formulário
+  document.getElementById('keysStandardLabel').innerText = `${dev.standardKeysPct.toFixed(2)}%`;
 }
 
 // ==========================================================================
@@ -172,6 +171,8 @@ export function selectDevelopment(devId) {
   document.getElementById('boostPctRange').value = currentDev.defaultBoostPct;
   document.getElementById('boostPctInput').value = currentDev.defaultBoostPct.toFixed(1);
   document.getElementById('boostCountInput').value = currentDev.defaultBoostCount;
+
+  document.getElementById('keysPctInput').value = currentDev.standardKeysPct.toFixed(1);
 
   renderExtraLinesInputs();
   calculate();
@@ -297,6 +298,24 @@ function renderExtraLinesInputs() {
 }
 
 // ==========================================================================
+// ATUALIZAÇÃO DINÂMICA DE LIMITES (TRAVA DE 100% INVIOLÁVEL)
+// ==========================================================================
+function updateDynamicSliderLimits(entryPct, monthlyPct, boostPct, extraLinesTotalPct) {
+  const entryRange = document.getElementById('entryPctRange');
+  const monthlyRange = document.getElementById('monthlyPctRange');
+  const boostRange = document.getElementById('boostPctRange');
+
+  // Máximo permitido para cada controle sem que a soma passe de 100%
+  const maxForMonthly = Math.max(0, 100 - entryPct - boostPct - extraLinesTotalPct);
+  const maxForBoost = Math.max(0, 100 - entryPct - monthlyPct - extraLinesTotalPct);
+  const maxForEntry = Math.max(0, 100 - monthlyPct - boostPct - extraLinesTotalPct);
+
+  if (monthlyRange) monthlyRange.max = Math.min(80, maxForMonthly);
+  if (boostRange) boostRange.max = Math.min(60, maxForBoost);
+  if (entryRange) entryRange.max = Math.min(60, maxForEntry);
+}
+
+// ==========================================================================
 // MOTOR DE CÁLCULO E SINCRONIZAÇÃO
 // ==========================================================================
 export function calculate() {
@@ -304,32 +323,12 @@ export function calculate() {
   const clientName = document.getElementById('clientName').value || 'Cliente Especial';
   const consultantName = document.getElementById('consultantName').value || 'Consultor Vetter';
   
-  // Leitura com máscara BRL
+  // 1. Leitura de Preço e Entrada
   const unitPrice = parseBRLInputToNumber(document.getElementById('unitPrice').value);
   let entryVal = parseBRLInputToNumber(document.getElementById('entryValueInput').value);
-  
-  let monthlyPct = parseFloat(document.getElementById('monthlyPctRange').value) || 0;
-  let monthlyCount = parseInt(document.getElementById('monthlyCountInput').value) || 1;
+  let entryPct = unitPrice > 0 ? (entryVal / unitPrice) * 100 : 0;
 
-  let boostPct = parseFloat(document.getElementById('boostPctRange').value) || 0;
-  let boostCount = parseInt(document.getElementById('boostCountInput').value) || 0;
-
-  const deliveryDateVal = document.getElementById('deliveryDate').value;
-
-  // Cálculo da Entrada %
-  const entryPct = unitPrice > 0 ? (entryVal / unitPrice) * 100 : 0;
-
-  // Totais Mensais
-  const monthlyTotal = (unitPrice * monthlyPct) / 100;
-  const monthlyUnit = monthlyCount > 0 ? monthlyTotal / monthlyCount : 0;
-  document.getElementById('monthlyTotalDisplay').value = formatCurrency(monthlyTotal);
-
-  // Totais de Reforços / Balões
-  const boostTotal = (unitPrice * boostPct) / 100;
-  const boostUnit = boostCount > 0 ? boostTotal / boostCount : 0;
-  document.getElementById('boostTotalDisplay').value = formatCurrency(boostTotal);
-
-  // Linhas Adicionais de Negociação
+  // 2. Linhas Extras
   let extraLinesTotalPct = 0;
   let extraLinesTotalVal = 0;
   extraLines.forEach(line => {
@@ -337,31 +336,116 @@ export function calculate() {
     extraLinesTotalVal += (unitPrice * (line.pct / 100));
   });
 
-  // Saldo Residual de Chaves
+  // 3. Leitura e Limites de Mensais e Balões
+  let monthlyPct = parseFloat(document.getElementById('monthlyPctRange').value) || 0;
+  let monthlyCount = parseInt(document.getElementById('monthlyCountInput').value) || 1;
+
+  let boostPct = parseFloat(document.getElementById('boostPctRange').value) || 0;
+  let boostCount = parseInt(document.getElementById('boostCountInput').value) || 0;
+
+  // Garante que Entrada + Mensais + Balões + Extras não passem de 100%
+  if (entryPct + monthlyPct + boostPct + extraLinesTotalPct > 100) {
+    const overflow = (entryPct + monthlyPct + boostPct + extraLinesTotalPct) - 100;
+    monthlyPct = Math.max(0, monthlyPct - overflow);
+    document.getElementById('monthlyPctRange').value = monthlyPct;
+    document.getElementById('monthlyPctInput').value = monthlyPct.toFixed(1);
+  }
+
+  // Atualiza limites dinâmicos dos sliders
+  updateDynamicSliderLimits(entryPct, monthlyPct, boostPct, extraLinesTotalPct);
+
+  // 4. Saldo Residual de Chaves (Garante sempre fechamento exato em 100%)
   const keysPct = Math.max(0, 100 - entryPct - monthlyPct - boostPct - extraLinesTotalPct);
   const keysValue = (unitPrice * keysPct) / 100;
 
-  document.getElementById('keysPctLabel').innerText = formatPct(keysPct);
+  document.getElementById('keysPctInput').value = keysPct.toFixed(1);
   document.getElementById('keysValueDisplay').innerText = formatCurrency(keysValue);
 
-  // Validação de Alertas
-  const alertEl = document.getElementById('keyWarningAlert');
-  const alertText = document.getElementById('keyWarningText');
-  const totalFlowBeforeKeys = entryPct + monthlyPct + boostPct + extraLinesTotalPct;
+  // 5. Totais Mensais e Balões em R$
+  const monthlyTotal = (unitPrice * monthlyPct) / 100;
+  const monthlyUnit = monthlyCount > 0 ? monthlyTotal / monthlyCount : 0;
+  document.getElementById('monthlyTotalDisplay').value = formatCurrency(monthlyTotal);
 
-  if (totalFlowBeforeKeys > 100) {
-    alertEl.classList.remove('hidden');
-    alertEl.className = 'bg-rose-500/10 border border-rose-500/40 text-rose-300 p-3 rounded-xl text-xs flex items-center gap-2';
-    alertText.innerText = `Atenção: A soma dos pagamentos (${totalFlowBeforeKeys.toFixed(2)}%) ultrapassa 100% do valor do imóvel! Ajuste os percentuais.`;
-  } else if (keysPct < 15 && currentDev.status !== 'pronto') {
-    alertEl.classList.remove('hidden');
-    alertEl.className = 'bg-amber-500/10 border border-amber-500/40 text-amber-300 p-3 rounded-xl text-xs flex items-center gap-2';
-    alertText.innerText = 'Atenção: O saldo de chaves está abaixo de 15% do valor do imóvel. Condição sujeita à aprovação da diretoria comercial.';
+  const boostTotal = (unitPrice * boostPct) / 100;
+  const boostUnit = boostCount > 0 ? boostTotal / boostCount : 0;
+  document.getElementById('boostTotalDisplay').value = formatCurrency(boostTotal);
+
+  const deliveryDateVal = document.getElementById('deliveryDate').value;
+
+  // 6. ANÁLISE DE CONFORMIDADE COM O FLUXO DE TABELA VETTER
+  const isKeysAboveTable = currentDev.status !== 'pronto' && (keysPct > currentDev.standardKeysPct + 0.05);
+  const isEntryBelowMin = currentDev.status !== 'pronto' && (entryPct < 9.99);
+
+  // Atualização do Banner de Conformidade e Mudança de Cor
+  const complianceBanner = document.getElementById('proposalComplianceBanner');
+  const complianceIconContainer = document.getElementById('complianceIconContainer');
+  const complianceIcon = document.getElementById('complianceIcon');
+  const complianceTitle = document.getElementById('complianceTitle');
+  const complianceDesc = document.getElementById('complianceDesc');
+  const complianceBadge = document.getElementById('complianceBadge');
+
+  const cardKeysContainer = document.getElementById('cardKeysContainer');
+  const cardKeysStatusIndicator = document.getElementById('cardKeysStatusIndicator');
+  const printComplianceStamp = document.getElementById('printComplianceStamp');
+
+  if (isKeysAboveTable) {
+    // ALERTA: Chaves acima do padrão de tabela (Requer Aprovação)
+    complianceBanner.className = 'p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg bg-amber-500/15 border-[#ffb700] text-[#ffb700]';
+    complianceIconContainer.className = 'w-9 h-9 rounded-xl bg-[#ffb700]/20 text-[#ffb700] flex items-center justify-center text-lg flex-shrink-0 animate-pulse';
+    complianceIcon.className = 'fa-solid fa-triangle-exclamation';
+    complianceTitle.innerText = 'Negociação Especial — Sujeita à Aprovação da Gerência Comercial';
+    complianceDesc.innerText = `O saldo de chaves (${keysPct.toFixed(2)}%) está acima do limite padrão de tabela (${currentDev.standardKeysPct.toFixed(0)}%). O fluxo de obra foi reduzido.`;
+    complianceBadge.className = 'text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider border border-[#ffb700] bg-[#ffb700] text-slate-950';
+    complianceBadge.innerText = 'REQUER APROVAÇÃO';
+
+    // Muda a cor do Card das Chaves para Destaque/Alerta
+    cardKeysContainer.className = 'p-3 rounded-xl border border-[#ffb700] bg-[#ffb700]/15 text-[#ffb700] shadow-lg shadow-[#ffb700]/10 transition-all';
+    cardKeysStatusIndicator.classList.remove('hidden');
+    cardKeysStatusIndicator.className = 'text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#ffb700] text-slate-950';
+    cardKeysStatusIndicator.innerText = `Acima Tabela (${currentDev.standardKeysPct}%)`;
+
+    // Carimbo no PDF
+    if (printComplianceStamp) {
+      printComplianceStamp.className = 'font-bold px-2.5 py-0.5 rounded border border-amber-600 bg-amber-50 text-amber-900';
+      printComplianceStamp.innerText = `⚠️ PROPOSTA ESPECIAL — SUJEITA À APROVAÇÃO DA GERÊNCIA (CHAVES ${keysPct.toFixed(1)}% / LIMITE ${currentDev.standardKeysPct}%)`;
+    }
+  } else if (isEntryBelowMin) {
+    // ALERTA: Entrada abaixo do mínimo de 10%
+    complianceBanner.className = 'p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg bg-amber-500/15 border-[#ffb700] text-[#ffb700]';
+    complianceIconContainer.className = 'w-9 h-9 rounded-xl bg-[#ffb700]/20 text-[#ffb700] flex items-center justify-center text-lg flex-shrink-0';
+    complianceIcon.className = 'fa-solid fa-triangle-exclamation';
+    complianceTitle.innerText = 'Negociação Especial — Entrada Flexibilizada';
+    complianceDesc.innerText = `Entrada (${entryPct.toFixed(2)}%) abaixo do padrão mínimo regulamentar de 10%. Requer validação comercial.`;
+    complianceBadge.className = 'text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider border border-[#ffb700] bg-[#ffb700] text-slate-950';
+    complianceBadge.innerText = 'REQUER APROVAÇÃO';
+
+    cardKeysContainer.className = 'bg-[#111418] p-3 rounded-xl border border-[#2d3644] transition-all';
+    cardKeysStatusIndicator.classList.add('hidden');
+
+    if (printComplianceStamp) {
+      printComplianceStamp.className = 'font-bold px-2.5 py-0.5 rounded border border-amber-600 bg-amber-50 text-amber-900';
+      printComplianceStamp.innerText = `⚠️ PROPOSTA ESPECIAL — ENTRADA FLEXIBILIZADA (${entryPct.toFixed(1)}% < 10%)`;
+    }
   } else {
-    alertEl.classList.add('hidden');
+    // CONFORME: Dentro das regras oficiais
+    complianceBanner.className = 'p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg bg-emerald-950/40 border-emerald-500/40 text-emerald-300';
+    complianceIconContainer.className = 'w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0';
+    complianceIcon.className = 'fa-solid fa-circle-check';
+    complianceTitle.innerText = `Proposta em Conformidade com a Tabela Oficial (${currentDev.limitFlow})`;
+    complianceDesc.innerText = 'Condições comerciais dentro da política padrão aprovada pela Vetter Empreendimentos.';
+    complianceBadge.className = 'text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-wider border border-emerald-500/40 bg-emerald-500/20 text-emerald-300';
+    complianceBadge.innerText = 'APROVADA';
+
+    cardKeysContainer.className = 'bg-[#111418] p-3 rounded-xl border border-[#2d3644] transition-all';
+    cardKeysStatusIndicator.classList.add('hidden');
+
+    if (printComplianceStamp) {
+      printComplianceStamp.className = 'font-bold px-2.5 py-0.5 rounded border border-emerald-500 bg-emerald-50 text-emerald-900';
+      printComplianceStamp.innerText = `✅ PROPOSTA REGULAR — EM CONFORMIDADE COM A TABELA OFICIAL (${currentDev.limitFlow})`;
+    }
   }
 
-  // Cabeçalho da Proposta e Visualização
+  // 7. Cabeçalho da Proposta e Visualização
   document.getElementById('outPropTitle').innerText = propTitle;
   document.getElementById('outClientName').innerText = clientName;
   document.getElementById('outConsultantName').innerText = consultantName;
@@ -378,7 +462,7 @@ export function calculate() {
   document.getElementById('cardBoostSub').innerText = boostCount > 0 ? `${boostCount}x balões` : 'Sem balões';
 
   document.getElementById('cardKeys').innerText = formatCurrency(keysValue);
-  document.getElementById('cardKeysSub').innerText = `${formatPct(keysPct)} do saldo final`;
+  document.getElementById('cardKeysSub').innerText = `${formatPct(keysPct)} final`;
 
   // Card para Linhas Extras se houver
   const extraMetricCard = document.getElementById('cardExtraMetric');
@@ -390,7 +474,7 @@ export function calculate() {
     extraMetricCard.classList.add('hidden');
   }
 
-  // Renderizar Tabela Discriminativa de Fluxo
+  // 8. Renderizar Tabela Discriminativa de Fluxo
   renderFlowTable({
     unitPrice,
     entryVal,
@@ -409,7 +493,7 @@ export function calculate() {
     extraLines
   });
 
-  // Atualizar Gráfico Doughnut Chart.js
+  // 9. Atualizar Gráfico Doughnut Chart.js
   updateChartData({
     entryPct,
     monthlyPct,
@@ -538,7 +622,7 @@ function initChart() {
     data: {
       labels: ['Entrada', 'Mensais', 'Reforços', 'Chaves'],
       datasets: [{
-        data: [11.94, 45.0, 20.0, 23.06],
+        data: [10.0, 20.0, 10.0, 60.0],
         backgroundColor: ['#10b981', '#ffb700', '#38bdf8', '#e5a500'],
         borderWidth: 2,
         borderColor: '#181d24'
@@ -656,7 +740,6 @@ function bindEvents() {
     const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
     e.target.value = formatNumberToBRLInput(num);
 
-    // Reajusta o valor nominal da entrada mantendo o % atual digitado
     const currentEntryPct = parseFloat(document.getElementById('entryPctInput').value) || 10;
     const newEntryVal = (num * currentEntryPct) / 100;
     document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
@@ -674,78 +757,73 @@ function bindEvents() {
     const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
     const computedPct = price > 0 ? (num / price) * 100 : 0;
 
-    document.getElementById('entryPctInput').value = computedPct.toFixed(2);
-
-    // Trava de 10% mínimo: se menor que 10, expande o slider e exibe aviso
-    const range = document.getElementById('entryPctRange');
-    if (computedPct < 10) {
-      range.min = '0';
-      range.value = computedPct;
-      document.getElementById('entryMinWarning').classList.remove('hidden');
-    } else {
-      range.min = '10';
-      range.value = computedPct;
-      document.getElementById('entryMinWarning').classList.add('hidden');
-    }
-
-    calculate();
+    applyEntryAdjustment(computedPct);
   });
 
   // PERCENTUAL DE ENTRADA MANUAL (Operador digita diretamente o %)
   const entryPctInput = document.getElementById('entryPctInput');
   entryPctInput.addEventListener('input', (e) => {
     const pct = parseFloat(e.target.value) || 0;
-    const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
-    const newEntryVal = (price * pct) / 100;
-    
-    document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
-
-    const range = document.getElementById('entryPctRange');
-    if (pct < 10) {
-      range.min = '0';
-      range.value = pct;
-      document.getElementById('entryMinWarning').classList.remove('hidden');
-    } else {
-      range.min = '10';
-      range.value = pct;
-      document.getElementById('entryMinWarning').classList.add('hidden');
-    }
-
-    calculate();
+    applyEntryAdjustment(pct);
   });
 
   // SLIDER DE ENTRADA
   const entryPctRange = document.getElementById('entryPctRange');
   entryPctRange.addEventListener('input', (e) => {
     const pct = parseFloat(e.target.value) || 0;
-    document.getElementById('entryPctInput').value = pct.toFixed(2);
+    applyEntryAdjustment(pct);
+  });
+
+  // FUNÇÃO DE AJUSTE EQUILIBRADO DA ENTRADA
+  function applyEntryAdjustment(newEntryPct) {
+    // Limita entrada a no máximo 90%
+    newEntryPct = Math.min(90, Math.max(0, newEntryPct));
+
+    document.getElementById('entryPctInput').value = newEntryPct.toFixed(2);
 
     const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
-    const newEntryVal = (price * pct) / 100;
+    const newEntryVal = (price * newEntryPct) / 100;
     document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
 
-    if (pct >= 10) {
+    // Ajusta o slider e alerta de 10%
+    const range = document.getElementById('entryPctRange');
+    if (newEntryPct < 10) {
+      range.min = '0';
+      range.value = newEntryPct;
+      document.getElementById('entryMinWarning').classList.remove('hidden');
+    } else {
+      range.min = '10';
+      range.value = newEntryPct;
       document.getElementById('entryMinWarning').classList.add('hidden');
     }
 
+    // REEQUILÍBRIO INTELIGENTE:
+    // Se o empreendimento tiver fluxo de obra definido (ex: 40% obra / 60% chaves),
+    // preservamos o padrão das Chaves reequilibrando as Mensais dentro da Obra!
+    if (currentDev.status !== 'pronto' && currentDev.standardObraPct > 0) {
+      const remainingObra = Math.max(0, currentDev.standardObraPct - newEntryPct);
+      const currentBoost = parseFloat(document.getElementById('boostPctRange').value) || 0;
+
+      if (remainingObra >= currentBoost) {
+        const newMonthly = remainingObra - currentBoost;
+        document.getElementById('monthlyPctRange').value = newMonthly;
+        document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+      } else {
+        document.getElementById('monthlyPctRange').value = 0;
+        document.getElementById('monthlyPctInput').value = '0.0';
+        document.getElementById('boostPctRange').value = remainingObra;
+        document.getElementById('boostPctInput').value = remainingObra.toFixed(1);
+      }
+    }
+
     calculate();
-  });
+  }
 
   // BOTÃO RESTAURAR 10% MÍNIMO DA ENTRADA
   const btnRestoreMinEntry = document.getElementById('btnRestoreMinEntry');
   if (btnRestoreMinEntry) {
     btnRestoreMinEntry.addEventListener('click', () => {
-      document.getElementById('entryPctInput').value = '10.00';
-      const range = document.getElementById('entryPctRange');
-      range.min = '10';
-      range.value = '10';
-
-      const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
-      const newEntryVal = (price * 10) / 100;
-      document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
-
-      document.getElementById('entryMinWarning').classList.add('hidden');
-      calculate();
+      applyEntryAdjustment(10.0);
     });
   }
 
@@ -754,7 +832,14 @@ function bindEvents() {
   const monthlyPctRange = document.getElementById('monthlyPctRange');
 
   monthlyPctInput.addEventListener('input', (e) => {
-    const pct = parseFloat(e.target.value) || 0;
+    let pct = parseFloat(e.target.value) || 0;
+    const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
+    const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
+    const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
+
+    // Trava de 100%
+    pct = Math.min(pct, Math.max(0, 100 - entry - boost - extras));
+    e.target.value = pct.toFixed(1);
     monthlyPctRange.value = pct;
     calculate();
   });
@@ -772,7 +857,14 @@ function bindEvents() {
   const boostPctRange = document.getElementById('boostPctRange');
 
   boostPctInput.addEventListener('input', (e) => {
-    const pct = parseFloat(e.target.value) || 0;
+    let pct = parseFloat(e.target.value) || 0;
+    const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
+    const monthly = parseFloat(document.getElementById('monthlyPctInput').value) || 0;
+    const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
+
+    // Trava de 100%
+    pct = Math.min(pct, Math.max(0, 100 - entry - monthly - extras));
+    e.target.value = pct.toFixed(1);
     boostPctRange.value = pct;
     calculate();
   });
@@ -784,6 +876,43 @@ function bindEvents() {
   });
 
   document.getElementById('boostCountInput').addEventListener('input', calculate);
+
+  // PERCENTUAL DAS CHAVES MANUAL (Operador pode digitar o % desejado nas chaves)
+  const keysPctInput = document.getElementById('keysPctInput');
+  if (keysPctInput) {
+    keysPctInput.addEventListener('input', (e) => {
+      let targetKeys = parseFloat(e.target.value) || 0;
+      targetKeys = Math.min(100, Math.max(0, targetKeys));
+
+      const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
+      const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
+      const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
+
+      // Reajusta mensais para absorver a diferença e manter 100%
+      const newMonthly = Math.max(0, 100 - targetKeys - entry - boost - extras);
+      document.getElementById('monthlyPctRange').value = newMonthly;
+      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+
+      calculate();
+    });
+  }
+
+  // BOTÃO: FIXAR CHAVES NO PADRÃO DE TABELA
+  const btnLockTableKeys = document.getElementById('btnLockTableKeys');
+  if (btnLockTableKeys) {
+    btnLockTableKeys.addEventListener('click', () => {
+      const targetKeys = currentDev.standardKeysPct;
+      const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
+      const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
+      const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
+
+      const newMonthly = Math.max(0, 100 - targetKeys - entry - boost - extras);
+      document.getElementById('monthlyPctRange').value = newMonthly;
+      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+
+      calculate();
+    });
+  }
 
   // Botão Adicionar Linha de Negociação
   const addLineBtn = document.getElementById('btnAddExtraLine');
