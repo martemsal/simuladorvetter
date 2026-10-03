@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Propostas — Vetter Empreendimentos</title>
+  <meta name="description" content="Simulador Comercial de Propostas Imobiliárias de Alto Padrão - Vetter Empreendimentos">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS & Print Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            vetter: {
+              gold: '#eab308',
+              accent: '#38bdf8',
+              dark: '#0f172a',
+              card: '#1e293b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased flex flex-col selection:bg-sky-500 selection:text-white">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur sticky top-0 z-50 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20">
+          <i class="fa-solid fa-water"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-black tracking-widest uppercase text-amber-400">vetter.</span>
+            <span class="text-xs text-slate-500">|</span>
+            <h1 class="text-sm font-bold text-white tracking-tight leading-none">Simulador de Propostas</h1>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium">Gestão Comercial & Negociação Flexível a Poucos Passos do Mar</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="btnReset" class="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition border border-slate-700 flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-rotate-left text-slate-400"></i> Redefinir
+        </button>
+        <button onclick="window.print()" class="px-4 py-1.5 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-lg shadow-md shadow-amber-500/20 transition flex items-center gap-2">
+          <i class="fa-solid fa-file-pdf"></i> Imprimir / Salvar PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print-full-width">
+    
+    <!-- ====================================================================
+         CARD SUPERIOR DO EMPREENDIMENTO (Destaque visual na tela e no PDF)
+         ==================================================================== -->
+    <div class="mb-6 bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-850 border border-slate-700/80 rounded-2xl p-5 shadow-2xl relative overflow-hidden print-card">
+      <div class="absolute -right-16 -top-16 w-52 h-52 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Top Row: Seletor de Empreendimento + Status -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="no-print">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">
+              <i class="fa-solid fa-building me-1"></i> Selecione o Empreendimento Vetter:
+            </label>
+            <div class="relative">
+              <select id="devSelect" class="bg-slate-800 text-white font-semibold text-sm rounded-xl px-3.5 py-2 border border-slate-700 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition cursor-pointer pr-9 shadow-inner">
+                <!-- Preenchido dinamicamente via JS -->
+              </select>
+            </div>
+          </div>
+          <div>
+            <h2 id="devCardName" class="text-2xl font-black text-white tracking-tight">Bal Harbour</h2>
+            <p id="devCardAddress" class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+              <i class="fa-solid fa-location-dot text-amber-400"></i> Av. Nereu Ramos - Piçarras
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span id="devCardStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+            <i class="fa-solid fa-person-digging text-amber-400"></i> Em Obras • Entrega Mai/2030
+          </span>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Indicadores Chave (Praia, Pavimentos, Lazer, Unidades, Fluxo) -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-4">
+        <!-- Praia -->
+        <div class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-lg font-bold">
+            <i class="fa-solid fa-umbrella-beach"></i>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block">Distância do Mar</span>
+            <span id="devCardBeach" class="text-sm font-bold text-white">80 m</span>
+          </div>
+        </div>
+
+        <!-- Pavimentos -->
+        <div class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg font-bold">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block">Pavimentos</span>
+            <span id="devCardFloors" class="text-sm font-bold text-white">25 Pavimentos</span>
+          </div>
+        </div>
+
+        <!-- Lazer -->
+        <div class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3 sm:col-span-1 col-span-2">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg font-bold">
+            <i class="fa-solid fa-swimming-pool"></i>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block">Área de Lazer</span>
+            <span id="devCardLeisure" class="text-xs font-bold text-white">1.400 m² (31 opções)</span>
+          </div>
+        </div>
+
+        <!-- Unidades -->
+        <div class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg font-bold">
+            <i class="fa-solid fa-key"></i>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block">Disponibilidade</span>
+            <span id="devCardUnits" class="text-xs font-bold text-white">30 unidades</span>
+          </div>
+        </div>
+
+        <!-- Fluxo Limite Padrão -->
+        <div class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3 sm:col-span-2 lg:col-span-1">
+          <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg font-bold">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block">Fluxo Limite Tabela</span>
+            <span id="devCardLimitFlow" class="text-xs font-bold text-sky-300">40/60</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         CABEÇALHO EXCLUSIVO PARA IMPRESSÃO EM PDF
+         ==================================================================== -->
+    <div class="print-only mb-4 border-b-2 border-slate-900 pb-3">
+      <div class="flex justify-between items-start">
+        <div>
+          <span class="text-xs font-black uppercase tracking-widest text-slate-900">VETTER EMPREENDIMENTOS</span>
+          <h1 id="printDevName" class="text-xl font-black text-slate-950 mt-0.5">Bal Harbour</h1>
+          <p id="printDevAddress" class="text-xs text-slate-600">Av. Nereu Ramos - Piçarras</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-bold uppercase px-2 py-0.5 border border-slate-900 rounded">Proposta Comercial</span>
+          <p class="text-xs text-slate-600 mt-1">Previsão Entrega: <strong id="printDevDelivery" class="text-slate-900">Mai/2030</strong></p>
+        </div>
+      </div>
+      
+      <!-- Linha de Atributos do Imóvel para o PDF -->
+      <div class="grid grid-cols-4 gap-2 mt-3 pt-2 border-t border-slate-200 text-xs">
+        <div><strong>Distância Praia:</strong> <span id="printDevBeach">80 m</span></div>
+        <div><strong>Pavimentos:</strong> <span id="printDevFloors">25 Pav.</span></div>
+        <div><strong>Lazer:</strong> <span id="printDevLeisure">1.400 m²</span></div>
+        <div><strong>Regra Tabela:</strong> <span id="printDevFlow">40/60</span></div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         LAYOUT PRINCIPAL: FORMULÁRIO (5 COLS) + PRÉVIA & ANÁLISE (7 COLS)
+         ==================================================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN: INPUTS & CONTROLES (5 cols) -->
+      <div class="lg:col-span-5 space-y-6 no-print">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm">
+          
+          <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-amber-400"></i> Parâmetros da Negociação
+            </h3>
+            <span class="text-[11px] bg-slate-800 text-amber-400 px-2.5 py-0.5 rounded-full font-mono border border-slate-700">Simulador Ativo</span>
+          </div>
+
+          <form id="simulatorForm" class="space-y-4 text-xs" onsubmit="return false;">
+
+            <!-- Dados da Proposta & Cliente -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Unidade / Identificação</label>
+                <input type="text" id="propTitle" value="Bal Harbour - Unidade 601" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400 transition">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Nome do Cliente</label>
+                <input type="text" id="clientName" value="Cliente Especial" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400 transition">
+              </div>
+            </div>
+
+            <!-- Consultor e Data Base -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Consultor / Corretor</label>
+                <input type="text" id="consultantName" value="Consultor Vetter" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400 transition">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Data Base da Proposta</label>
+                <input type="month" id="proposalBaseDate" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400 transition">
+              </div>
+            </div>
+
+            <!-- Valor do Imóvel -->
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Valor de Tabela do Imóvel (R$)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-amber-400 font-bold">R$</span>
+                <input type="number" id="unitPrice" value="2093725.72" step="1000" class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-white font-mono font-bold text-sm focus:outline-none focus:border-amber-400 transition">
+              </div>
+            </div>
+
+            <hr class="border-slate-800 my-2">
+
+            <!-- 1. Entrada / Ato Inicial -->
+            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-slate-200 font-semibold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 1. Entrada / Ato Inicial
+                </label>
+                <span id="entryPctLabel" class="text-emerald-400 font-bold font-mono text-xs">11.94%</span>
+              </div>
+              <div class="grid grid-cols-12 gap-2 items-center">
+                <div class="col-span-6">
+                  <input type="range" id="entryPctRange" min="5" max="60" step="0.01" value="11.94" class="w-full accent-emerald-500 cursor-pointer">
+                </div>
+                <div class="col-span-6">
+                  <div class="relative">
+                    <span class="absolute left-2 top-1.5 text-slate-400 text-[10px]">R$</span>
+                    <input type="number" id="entryValueInput" value="250000" step="1000" class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-7 pr-2 py-1.5 text-slate-100 font-mono text-right text-xs focus:outline-none focus:border-emerald-400">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Parcelas Mensais -->
+            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-slate-200 font-semibold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> 2. Parcelas Mensais (Obra)
+                </label>
+                <span id="monthlyPctLabel" class="text-sky-400 font-bold font-mono text-xs">45.00%</span>
+              </div>
+              <div class="grid grid-cols-12 gap-2 items-center">
+                <div class="col-span-4">
+                  <input type="range" id="monthlyPctRange" min="0" max="80" step="0.5" value="45" class="w-full accent-sky-500 cursor-pointer">
+                </div>
+                <div class="col-span-3">
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="monthlyCountInput" value="44" min="1" max="120" title="Calculado automaticamente da data atual até a entrega, mas você pode mudar manualmente" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-mono text-center text-xs focus:outline-none focus:border-sky-400">
+                    <span class="text-slate-400 text-[10px]">x</span>
+                  </div>
+                </div>
+                <div class="col-span-5">
+                  <input type="text" id="monthlyTotalDisplay" readonly class="w-full bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1.5 text-sky-300 font-mono text-right text-[11px]" value="R$ 942.176,57">
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1.5">
+                <i class="fa-solid fa-calculator text-sky-400 me-0.5"></i> Prazo calculado da data base até a entrega (editável livremente).
+              </p>
+            </div>
+
+            <!-- 3. Reforços Anuais (Balões) -->
+            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-slate-200 font-semibold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> 3. Reforços / Balões Anuais
+                </label>
+                <span id="boostPctLabel" class="text-indigo-400 font-bold font-mono text-xs">20.00%</span>
+              </div>
+              <div class="grid grid-cols-12 gap-2 items-center">
+                <div class="col-span-4">
+                  <input type="range" id="boostPctRange" min="0" max="50" step="0.5" value="20" class="w-full accent-indigo-500 cursor-pointer">
+                </div>
+                <div class="col-span-3">
+                  <div class="flex items-center gap-1">
+                    <input type="number" id="boostCountInput" value="4" min="0" max="10" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 font-mono text-center text-xs focus:outline-none focus:border-indigo-400">
+                    <span class="text-slate-400 text-[10px]">balões</span>
+                  </div>
+                </div>
+                <div class="col-span-5">
+                  <input type="text" id="boostTotalDisplay" readonly class="w-full bg-slate-900/90 border border-slate-800 rounded-lg px-2 py-1.5 text-indigo-300 font-mono text-right text-[11px]" value="R$ 418.745,14">
+                </div>
+              </div>
+            </div>
+
+            <!-- ==============================================================
+                 LINHAS ADICIONAIS DE NEGOCIAÇÃO (Customizável / Dinâmico)
+                 ============================================================== -->
+            <div class="bg-slate-950/80 p-3 rounded-xl border border-indigo-500/30">
+              <div class="flex justify-between items-center mb-2">
+                <div>
+                  <label class="text-slate-200 font-bold flex items-center gap-1.5 text-xs">
+                    <i class="fa-solid fa-plus-circle text-purple-400"></i> Linhas Adicionais de Negociação
+                  </label>
+                  <p class="text-[10px] text-slate-400">Permutas de veículos/imóveis, semestrais ou parcelas extras.</p>
+                </div>
+                <button type="button" id="btnAddExtraLine" class="px-2.5 py-1 text-[11px] font-bold text-white bg-purple-600 hover:bg-purple-500 rounded-lg shadow-sm transition flex items-center gap-1">
+                  <i class="fa-solid fa-plus"></i> Adicionar Linha
+                </button>
+              </div>
+
+              <!-- Container das Linhas Extras -->
+              <div id="extraLinesContainer" class="space-y-2 mt-2">
+                <!-- Inserido dinamicamente via JS -->
+              </div>
+            </div>
+
+            <!-- 4. Chaves / Saldo Remanescente (Residual Automático) -->
+            <div class="bg-amber-950/20 p-3.5 rounded-xl border border-amber-500/40">
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-amber-300 font-bold flex items-center gap-1.5">
+                  <i class="fa-solid fa-key text-amber-400"></i> 4. Saldo Residual nas Chaves
+                </label>
+                <span id="keysPctLabel" class="text-amber-400 font-black font-mono text-xs">23.06%</span>
+              </div>
+              <p class="text-[10px] text-slate-400 mb-2">Ajustado automaticamente para que o fechamento totalize exatamente 100%.</p>
+              
+              <div class="flex items-center justify-between font-mono bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                <span class="text-slate-400 text-xs">Valor das Chaves:</span>
+                <span id="keysValueDisplay" class="text-amber-400 font-black text-sm">R$ 482.804,01</span>
+              </div>
+            </div>
+
+            <!-- Data Prevista de Entrega -->
+            <div id="deliveryDateGroup">
+              <label class="block text-slate-300 font-semibold mb-1">Data Prevista de Entrega / Chaves</label>
+              <input type="month" id="deliveryDate" value="2030-05" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400 transition">
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: PROPOSAL PREVIEW & RELATÓRIO COMERCIAL (7 cols) -->
+      <div class="lg:col-span-7 space-y-6 print-full-width">
+
+        <!-- Header Card da Proposta Comercial -->
+        <div class="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-700/80 rounded-2xl p-6 shadow-xl relative overflow-hidden print-card">
+          <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-sky-500/10 rounded-full blur-2xl"></div>
+          
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative z-10 border-b border-slate-800 pb-4 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-950/60 border border-amber-800/80 px-2.5 py-0.5 rounded-full">Proposta Comercial</span>
+                <span class="text-xs text-slate-400">Consultor: <strong id="outConsultantName" class="text-slate-200">Consultor Vetter</strong></span>
+              </div>
+              <h2 id="outPropTitle" class="text-xl font-extrabold text-white mt-1">Bal Harbour - Unidade 601</h2>
+              <p class="text-xs text-slate-400">Cliente: <span id="outClientName" class="text-slate-200 font-medium">Cliente Especial</span></p>
+            </div>
+            <div class="text-left sm:text-right">
+              <span class="text-xs text-slate-400 block">Valor do Imóvel</span>
+              <span id="outUnitPrice" class="text-2xl font-black text-amber-400 font-mono tracking-tight">R$ 2.093.725,72</span>
+            </div>
+          </div>
+
+          <!-- Cards Métricos -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
+            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+              <span class="text-[10px] uppercase font-semibold text-slate-400 block">Ato / Entrada</span>
+              <span id="cardEntry" class="text-sm font-bold text-emerald-400 font-mono">R$ 250.000,00</span>
+              <span id="cardEntrySub" class="text-[10px] text-slate-400 block">11.94%</span>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+              <span class="text-[10px] uppercase font-semibold text-slate-400 block">Mensalidade</span>
+              <span id="cardMonthlyUnit" class="text-sm font-bold text-sky-400 font-mono">R$ 21.413,10</span>
+              <span id="cardMonthlySub" class="text-[10px] text-slate-400 block">44x mensais</span>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+              <span class="text-[10px] uppercase font-semibold text-slate-400 block">Reforço Anual</span>
+              <span id="cardBoostUnit" class="text-sm font-bold text-indigo-300 font-mono">R$ 104.686,29</span>
+              <span id="cardBoostSub" class="text-[10px] text-slate-400 block">4x balões</span>
+            </div>
+            <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+              <span class="text-[10px] uppercase font-semibold text-slate-400 block">Nas Chaves</span>
+              <span id="cardKeys" class="text-sm font-bold text-amber-400 font-mono">R$ 482.804,01</span>
+              <span id="cardKeysSub" class="text-[10px] text-slate-400 block">23.06% final</span>
+            </div>
+          </div>
+
+          <!-- Card Opcional para Negociações Adicionais -->
+          <div id="cardExtraMetric" class="hidden mt-3 p-3 rounded-xl bg-purple-950/40 border border-purple-500/40 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-asterisk text-purple-400"></i>
+              <span class="text-purple-200 font-semibold">Linhas Especiais de Negociação:</span>
+              <span id="cardExtraSub" class="text-slate-400 text-[11px]">1 item adicional</span>
+            </div>
+            <span id="cardExtraVal" class="text-purple-300 font-mono font-bold text-sm">R$ 0,00</span>
+          </div>
+        </div>
+
+        <!-- Warning Alert Badge (Validações Comerciais) -->
+        <div id="keyWarningAlert" class="hidden p-3 rounded-xl text-xs flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base flex-shrink-0"></i>
+          <span id="keyWarningText">Atenção comercial.</span>
+        </div>
+
+        <!-- Tabela Discriminativa do Fluxo Financeiro -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl print-card">
+          <h3 class="text-sm font-bold text-white mb-3 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-amber-400"></i> Discriminativo do Fluxo Financeiro
+            </span>
+            <span class="text-xs font-normal text-slate-400">Moeda: Real (R$)</span>
+          </h3>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-sans">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider bg-slate-950/60">
+                  <th class="py-2.5 px-3">Condição de Pagamento</th>
+                  <th class="py-2.5 px-3 text-center">Qtd</th>
+                  <th class="py-2.5 px-3 text-center">% Imóvel</th>
+                  <th class="py-2.5 px-3 text-right">Valor Unitário</th>
+                  <th class="py-2.5 px-3 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="flowTableBody" class="divide-y divide-slate-800/80 text-slate-200">
+                <!-- Renderizado via app.js -->
+              </tbody>
+              <tfoot>
+                <tr class="border-t-2 border-slate-700 font-bold bg-slate-950">
+                  <td class="py-3 px-3 text-white uppercase tracking-wider">TOTAL DO IMÓVEL</td>
+                  <td class="text-center text-slate-400">-</td>
+                  <td class="text-center font-mono text-emerald-400 text-sm">100.00%</td>
+                  <td class="text-right text-slate-400">-</td>
+                  <td class="text-right font-mono text-emerald-400 text-base" id="tbTotalVal">R$ 2.093.725,72</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Donut Chart & Distribuição Percentual -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl print-card">
+          <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-amber-400"></i> Distribuição Percentual do Fluxo de Pagamento
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
+            <div class="sm:col-span-5 flex justify-center">
+              <div class="relative w-44 h-44">
+                <canvas id="paymentChart"></canvas>
+              </div>
+            </div>
+            <div class="sm:col-span-7 space-y-2 text-xs" id="chartLegendContainer">
+              <!-- Renderizado dinamicamente via app.js com suporte a linhas extras -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Rodapé do PDF / Assinaturas -->
+        <div class="print-signature print-only">
+          <div class="w-5/12 text-center border-t border-slate-400 pt-2">
+            <p class="font-bold text-slate-900">Assinatura do Cliente</p>
+            <p class="text-[10px] text-slate-600">De acordo com os termos da simulação</p>
+          </div>
+          <div class="w-5/12 text-center border-t border-slate-400 pt-2">
+            <p class="font-bold text-slate-900">Vetter Empreendimentos</p>
+            <p class="text-[10px] text-slate-600">Proposta sujeita à aprovação comercial</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-500 no-print mt-auto">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>© 2026 Vetter Empreendimentos — Simulador Comercial Inteligente</p>
+      <p class="text-[11px] text-slate-600">Valores sujeitos a alteração e correção monetária conforme contrato oficial.</p>
+    </div>
+  </footer>
+
+  <!-- App Script (ES Module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+/* ==========================================================================
+   SIMULADOR DE PROPOSTAS — VETTER EMPREENDIMENTOS
+   Custom Styles & High-End Print Stylesheet
+   ========================================================================== */
+
+/* Typography & Base */
+:root {
+  --color-gold-50: #fefce8;
+  --color-gold-400: #facc15;
+  --color-gold-500: #eab308;
+  --color-gold-600: #ca8a04;
+  --color-gold-700: #a16207;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.011em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Number inputs without ugly spin arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Accent ranges */
+input[type="range"] {
+  accent-color: #38bdf8;
+}
+
+/* Glassmorphism Card Effect */
+.glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.glass-card-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card-hover:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.15);
+}
+
+/* Badge Pulse */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+.pulse-badge {
+  animation: softPulse 3s infinite ease-in-out;
+}
+
+/* Row animations */
+.fade-in-item {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   PRINT STYLESHEET (PDF & IMPRESSÃO PROFISSIONAL A4)
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 12mm 10mm;
+  }
+
+  /* Reset layout for paper */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide interactive/form controls */
+  .no-print,
+  #simulatorForm,
+  #presetsBar,
+  header,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Full width container */
+  main,
+  .print-full-width {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Columns reordering: make preview occupy 100% */
+  .grid {
+    display: block !important;
+  }
+
+  .lg\:col-span-7,
+  .col-span-12 {
+    width: 100% !important;
+  }
+
+  /* Card and table styling for print */
+  .print-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    border-radius: 8px !important;
+    margin-bottom: 12px !important;
+    padding: 12px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    color: #0f172a !important;
+  }
+
+  .print-card-header {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border: 1px solid #0f172a !important;
+  }
+  
+  .print-card-header * {
+    color: #ffffff !important;
+  }
+  
+  .print-card-header .text-slate-400 {
+    color: #cbd5e1 !important;
+  }
+
+  .print-card-header .text-sky-400 {
+    color: #38bdf8 !important;
+  }
+
+  /* Tables in Print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead th {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid #94a3b8 !important;
+    padding: 6px 8px !important;
+  }
+
+  tbody td {
+    color: #0f172a !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 6px 8px !important;
+  }
+
+  tfoot tr {
+    background-color: #f8fafc !important;
+    border-top: 2px solid #0f172a !important;
+  }
+
+  tfoot td {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    padding: 8px !important;
+  }
+
+  /* Badges in Print */
+  .badge-print {
+    border: 1px solid #94a3b8 !important;
+    background: #f8fafc !important;
+    color: #0f172a !important;
+  }
+
+  /* Signature field for print */
+  .print-signature {
+    display: flex !important;
+    justify-content: space-between;
+    margin-top: 24px;
+    padding-top: 16px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
