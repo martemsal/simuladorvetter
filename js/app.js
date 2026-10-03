@@ -171,8 +171,10 @@ export function selectDevelopment(devId) {
   document.getElementById('boostPctRange').value = currentDev.defaultBoostPct;
   document.getElementById('boostPctInput').value = currentDev.defaultBoostPct.toFixed(1);
   document.getElementById('boostCountInput').value = currentDev.defaultBoostCount;
-
   document.getElementById('keysPctInput').value = currentDev.standardKeysPct.toFixed(1);
+
+  const entryCountInput = document.getElementById('entryCountInput');
+  if (entryCountInput) entryCountInput.value = '1';
 
   renderExtraLinesInputs();
   calculate();
@@ -328,6 +330,18 @@ export function calculate() {
   let entryVal = parseBRLInputToNumber(document.getElementById('entryValueInput').value);
   let entryPct = unitPrice > 0 ? (entryVal / unitPrice) * 100 : 0;
 
+  const entryCount = Math.max(1, parseInt(document.getElementById('entryCountInput')?.value) || 1);
+  const entryUnit = entryCount > 0 ? entryVal / entryCount : entryVal;
+
+  const entryUnitDisplay = document.getElementById('entryUnitDisplay');
+  if (entryUnitDisplay) {
+    if (entryCount === 1) {
+      entryUnitDisplay.innerText = `1x de ${formatCurrency(entryVal)} (À vista)`;
+    } else {
+      entryUnitDisplay.innerText = `${entryCount}x de ${formatCurrency(entryUnit)}`;
+    }
+  }
+
   // 2. Linhas Extras
   let extraLinesTotalPct = 0;
   let extraLinesTotalVal = 0;
@@ -452,8 +466,13 @@ export function calculate() {
   document.getElementById('outUnitPrice').innerText = formatCurrency(unitPrice);
 
   // Cards de Resumo
-  document.getElementById('cardEntry').innerText = formatCurrency(entryVal);
-  document.getElementById('cardEntrySub').innerText = formatPct(entryPct);
+  if (entryCount > 1) {
+    document.getElementById('cardEntry').innerText = formatCurrency(entryUnit);
+    document.getElementById('cardEntrySub').innerText = `${entryCount}x de ${formatCurrency(entryUnit)} (${formatPct(entryPct)})`;
+  } else {
+    document.getElementById('cardEntry').innerText = formatCurrency(entryVal);
+    document.getElementById('cardEntrySub').innerText = `${formatPct(entryPct)} à vista`;
+  }
 
   document.getElementById('cardMonthlyUnit').innerText = formatCurrency(monthlyUnit);
   document.getElementById('cardMonthlySub').innerText = `${monthlyCount}x de ${formatCurrency(monthlyUnit)}`;
@@ -479,6 +498,8 @@ export function calculate() {
     unitPrice,
     entryVal,
     entryPct,
+    entryCount,
+    entryUnit,
     monthlyCount,
     monthlyPct,
     monthlyUnit,
@@ -523,12 +544,15 @@ function renderFlowTable(data) {
       <td class="py-2.5 px-3 font-medium text-slate-200">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span>Entrada / Ato Inicial</span>
+          <div>
+            <span>Entrada / Ato ${data.entryCount > 1 ? `(Parcelada em ${data.entryCount}x)` : 'Inicial'}</span>
+            ${data.entryCount > 1 ? `<span class="block text-[10px] text-slate-400">Parcelamento do sinal</span>` : ''}
+          </div>
         </div>
       </td>
-      <td class="text-center font-mono text-slate-400">1x</td>
+      <td class="text-center font-mono text-slate-400">${data.entryCount}x</td>
       <td class="text-center font-mono font-semibold text-emerald-400">${formatPct(data.entryPct)}</td>
-      <td class="text-right font-mono text-slate-300">${formatCurrency(data.entryVal)}</td>
+      <td class="text-right font-mono text-slate-300">${formatCurrency(data.entryUnit)}</td>
       <td class="text-right font-mono font-bold text-white">${formatCurrency(data.entryVal)}</td>
     </tr>
 
@@ -825,6 +849,12 @@ function bindEvents() {
     btnRestoreMinEntry.addEventListener('click', () => {
       applyEntryAdjustment(10.0);
     });
+  }
+
+  // QUANTIDADE DE VEZES DA ENTRADA (PARCELAMENTO)
+  const entryCountInput = document.getElementById('entryCountInput');
+  if (entryCountInput) {
+    entryCountInput.addEventListener('input', calculate);
   }
 
   // PERCENTUAL MENSAL MANUAL
