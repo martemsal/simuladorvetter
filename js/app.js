@@ -372,17 +372,40 @@ export function calculate() {
   const keysPct = Math.max(0, 100 - entryPct - monthlyPct - boostPct - extraLinesTotalPct);
   const keysValue = (unitPrice * keysPct) / 100;
 
-  document.getElementById('keysPctInput').value = keysPct.toFixed(1);
-  document.getElementById('keysValueDisplay').innerText = formatCurrency(keysValue);
+  const keysPctInput = document.getElementById('keysPctInput');
+  if (keysPctInput && document.activeElement !== keysPctInput) {
+    keysPctInput.value = keysPct.toFixed(1);
+  }
+
+  const keysValueInput = document.getElementById('keysValueInput');
+  if (keysValueInput && document.activeElement !== keysValueInput) {
+    keysValueInput.value = formatNumberToBRLInput(keysValue);
+  }
 
   // 5. Totais Mensais e Balões em R$
   const monthlyTotal = (unitPrice * monthlyPct) / 100;
   const monthlyUnit = monthlyCount > 0 ? monthlyTotal / monthlyCount : 0;
-  document.getElementById('monthlyTotalDisplay').value = formatCurrency(monthlyTotal);
+  
+  const monthlyValueInput = document.getElementById('monthlyValueInput');
+  if (monthlyValueInput && document.activeElement !== monthlyValueInput) {
+    monthlyValueInput.value = formatNumberToBRLInput(monthlyTotal);
+  }
+  const monthlyUnitDetail = document.getElementById('monthlyUnitDetail');
+  if (monthlyUnitDetail) {
+    monthlyUnitDetail.innerText = `${monthlyCount}x de ${formatCurrency(monthlyUnit)}/mês`;
+  }
 
   const boostTotal = (unitPrice * boostPct) / 100;
   const boostUnit = boostCount > 0 ? boostTotal / boostCount : 0;
-  document.getElementById('boostTotalDisplay').value = formatCurrency(boostTotal);
+
+  const boostValueInput = document.getElementById('boostValueInput');
+  if (boostValueInput && document.activeElement !== boostValueInput) {
+    boostValueInput.value = formatNumberToBRLInput(boostTotal);
+  }
+  const boostUnitDetail = document.getElementById('boostUnitDetail');
+  if (boostUnitDetail) {
+    boostUnitDetail.innerText = boostCount > 0 ? `${boostCount}x de ${formatCurrency(boostUnit)}/balão` : 'Sem balões programados';
+  }
 
   const deliveryDateVal = document.getElementById('deliveryDate').value;
 
@@ -880,6 +903,29 @@ function bindEvents() {
     calculate();
   });
 
+  // VALOR EM R$ DAS MENSAIS MANUAL
+  const monthlyValueInput = document.getElementById('monthlyValueInput');
+  if (monthlyValueInput) {
+    monthlyValueInput.addEventListener('input', (e) => {
+      const rawDigits = e.target.value.replace(/\D/g, '');
+      const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
+      e.target.value = formatNumberToBRLInput(num);
+
+      const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+      let pct = price > 0 ? (num / price) * 100 : 0;
+
+      const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
+      const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
+      const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
+
+      pct = Math.min(pct, Math.max(0, 100 - entry - boost - extras));
+      document.getElementById('monthlyPctRange').value = pct;
+      document.getElementById('monthlyPctInput').value = pct.toFixed(1);
+
+      calculate();
+    });
+  }
+
   document.getElementById('monthlyCountInput').addEventListener('input', calculate);
 
   // PERCENTUAL DE REFORÇOS / BALÕES MANUAL
@@ -905,6 +951,29 @@ function bindEvents() {
     calculate();
   });
 
+  // VALOR EM R$ DOS REFORÇOS / BALÕES MANUAL
+  const boostValueInput = document.getElementById('boostValueInput');
+  if (boostValueInput) {
+    boostValueInput.addEventListener('input', (e) => {
+      const rawDigits = e.target.value.replace(/\D/g, '');
+      const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
+      e.target.value = formatNumberToBRLInput(num);
+
+      const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+      let pct = price > 0 ? (num / price) * 100 : 0;
+
+      const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
+      const monthly = parseFloat(document.getElementById('monthlyPctInput').value) || 0;
+      const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
+
+      pct = Math.min(pct, Math.max(0, 100 - entry - monthly - extras));
+      document.getElementById('boostPctRange').value = pct;
+      document.getElementById('boostPctInput').value = pct.toFixed(1);
+
+      calculate();
+    });
+  }
+
   document.getElementById('boostCountInput').addEventListener('input', calculate);
 
   // PERCENTUAL DAS CHAVES MANUAL (Operador pode digitar o % desejado nas chaves)
@@ -919,6 +988,32 @@ function bindEvents() {
       const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
 
       // Reajusta mensais para absorver a diferença e manter 100%
+      const newMonthly = Math.max(0, 100 - targetKeys - entry - boost - extras);
+      document.getElementById('monthlyPctRange').value = newMonthly;
+      document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
+
+      calculate();
+    });
+  }
+
+  // VALOR EM R$ DAS CHAVES MANUAL
+  const keysValueInput = document.getElementById('keysValueInput');
+  if (keysValueInput) {
+    keysValueInput.addEventListener('input', (e) => {
+      const rawDigits = e.target.value.replace(/\D/g, '');
+      const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
+      e.target.value = formatNumberToBRLInput(num);
+
+      const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+      let targetKeys = price > 0 ? (num / price) * 100 : 0;
+      targetKeys = Math.min(100, Math.max(0, targetKeys));
+
+      document.getElementById('keysPctInput').value = targetKeys.toFixed(1);
+
+      const entry = parseFloat(document.getElementById('entryPctInput').value) || 0;
+      const boost = parseFloat(document.getElementById('boostPctInput').value) || 0;
+      const extras = extraLines.reduce((acc, l) => acc + l.pct, 0);
+
       const newMonthly = Math.max(0, 100 - targetKeys - entry - boost - extras);
       document.getElementById('monthlyPctRange').value = newMonthly;
       document.getElementById('monthlyPctInput').value = newMonthly.toFixed(1);
