@@ -79,11 +79,11 @@ function renderDevelopmentCard(dev) {
 
   const statusBadge = document.getElementById('devCardStatusBadge');
   if (dev.status === 'pronto') {
-    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5';
+    statusBadge.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5';
     statusBadge.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i> Pronto para Morar';
   } else {
-    statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5';
-    statusBadge.innerHTML = `<i class="fa-solid fa-person-digging text-amber-400"></i> Em Obras • Entrega ${dev.deliveryLabel}`;
+    statusBadge.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#ffb700]/15 text-[#ffb700] border border-[#ffb700]/40 flex items-center gap-1.5';
+    statusBadge.innerHTML = `<i class="fa-solid fa-person-digging text-[#ffb700]"></i> Em Obras • Entrega ${dev.deliveryLabel}`;
   }
 
   // Atualiza também os elementos que aparecem no cabeçalho do PDF
@@ -434,12 +434,12 @@ function renderFlowTable(data) {
     <tr>
       <td class="py-2.5 px-3 font-medium text-slate-200">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-[#ffb700]"></span>
           <span>Parcelas Mensais (Fluxo de Obra)</span>
         </div>
       </td>
       <td class="text-center font-mono text-slate-400">${data.monthlyCount}x</td>
-      <td class="text-center font-mono font-semibold text-sky-400">${formatPct(data.monthlyPct)}</td>
+      <td class="text-center font-mono font-semibold text-[#ffb700]">${formatPct(data.monthlyPct)}</td>
       <td class="text-right font-mono text-slate-300">${formatCurrency(data.monthlyUnit)}</td>
       <td class="text-right font-mono font-bold text-white">${formatCurrency(data.monthlyTotal)}</td>
     </tr>
@@ -448,12 +448,12 @@ function renderFlowTable(data) {
     <tr>
       <td class="py-2.5 px-3 font-medium text-slate-200">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
           <span>Reforços Anuais (Balões)</span>
         </div>
       </td>
       <td class="text-center font-mono text-slate-400">${data.boostCount}x</td>
-      <td class="text-center font-mono font-semibold text-indigo-400">${formatPct(data.boostPct)}</td>
+      <td class="text-center font-mono font-semibold text-sky-400">${formatPct(data.boostPct)}</td>
       <td class="text-right font-mono text-slate-300">${data.boostCount > 0 ? formatCurrency(data.boostUnit) : '-'}</td>
       <td class="text-right font-mono font-bold text-white">${formatCurrency(data.boostTotal)}</td>
     </tr>
@@ -464,7 +464,7 @@ function renderFlowTable(data) {
     const lineTotal = (data.unitPrice * (line.pct / 100));
     const lineUnit = line.count > 0 ? lineTotal / line.count : 0;
     html += `
-      <tr class="bg-indigo-950/20">
+      <tr class="bg-purple-950/20">
         <td class="py-2.5 px-3 font-medium text-slate-200">
           <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
@@ -487,14 +487,14 @@ function renderFlowTable(data) {
     <tr>
       <td class="py-2.5 px-3 font-medium text-slate-200">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-[#ffb700]"></span>
           <span>Chaves / Saldo Final ${deliveryText}</span>
         </div>
       </td>
       <td class="text-center font-mono text-slate-400">1x</td>
-      <td class="text-center font-mono font-semibold text-amber-400">${formatPct(data.keysPct)}</td>
+      <td class="text-center font-mono font-semibold text-[#ffb700]">${formatPct(data.keysPct)}</td>
       <td class="text-right font-mono text-slate-300">${formatCurrency(data.keysValue)}</td>
-      <td class="text-right font-mono font-bold text-amber-400">${formatCurrency(data.keysValue)}</td>
+      <td class="text-right font-mono font-bold text-[#ffb700]">${formatCurrency(data.keysValue)}</td>
     </tr>
   `;
 
@@ -522,9 +522,9 @@ function initChart() {
       labels: ['Entrada', 'Mensais', 'Reforços', 'Chaves'],
       datasets: [{
         data: [11.94, 45.0, 20.0, 23.06],
-        backgroundColor: ['#10b981', '#0284c7', '#6366f1', '#f59e0b'],
+        backgroundColor: ['#10b981', '#ffb700', '#38bdf8', '#e5a500'],
         borderWidth: 2,
-        borderColor: '#0f172a'
+        borderColor: '#181d24'
       }]
     },
     options: {
@@ -548,13 +548,13 @@ function initChart() {
 function updateChartData({ entryPct, monthlyPct, boostPct, extraLines, keysPct }) {
   if (!paymentChart) return;
 
-  const labels = ['Entrada', 'Mensais', 'Reforços'];
+  const labels = ['Entrada', 'Mensais (Obra)', 'Reforços'];
   const data = [
     parseFloat(entryPct.toFixed(2)),
     parseFloat(monthlyPct.toFixed(2)),
     parseFloat(boostPct.toFixed(2))
   ];
-  const bgColors = ['#10b981', '#0284c7', '#6366f1'];
+  const bgColors = ['#10b981', '#ffb700', '#38bdf8'];
 
   // Cores para linhas adicionais
   const extraPalette = ['#a855f7', '#ec4899', '#06b6d4', '#14b8a6'];
@@ -564,9 +564,9 @@ function updateChartData({ entryPct, monthlyPct, boostPct, extraLines, keysPct }
     bgColors.push(extraPalette[idx % extraPalette.length]);
   });
 
-  labels.push('Chaves / Saldo');
+  labels.push('Saldo Chaves');
   data.push(parseFloat(keysPct.toFixed(2)));
-  bgColors.push('#f59e0b');
+  bgColors.push('#e5a500');
 
   paymentChart.data.labels = labels;
   paymentChart.data.datasets[0].data = data;
@@ -582,7 +582,7 @@ function renderChartLegend(labels, data, colors) {
   if (!container) return;
 
   container.innerHTML = labels.map((label, idx) => `
-    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+    <div class="flex items-center justify-between p-2 rounded-xl bg-[#111418] border border-[#2d3644]">
       <div class="flex items-center gap-2">
         <span class="w-3 h-3 rounded-full" style="background-color: ${colors[idx]}"></span>
         <span class="text-slate-300 font-medium text-xs">${label}</span>

@@ -1,20 +1,23 @@
 /* ==========================================================================
    SIMULADOR DE PROPOSTAS — VETTER EMPREENDIMENTOS
-   Custom Styles & High-End Print Stylesheet
+   Identidade Visual Oficial: Amarelo Vetter (#ffb700) & Charcoal (#282828)
    ========================================================================== */
 
-/* Typography & Base */
 :root {
-  --color-gold-50: #fefce8;
-  --color-gold-400: #facc15;
-  --color-gold-500: #eab308;
-  --color-gold-600: #ca8a04;
-  --color-gold-700: #a16207;
+  --vetter-yellow: #ffb700;
+  --vetter-yellow-hover: #e5a500;
+  --vetter-yellow-light: #fff2cc;
+  --vetter-charcoal: #282828;
+  --vetter-bg: #111418;
+  --vetter-surface: #181d24;
+  --vetter-card: #202630;
+  --vetter-border: #2d3644;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: -0.011em;
+  letter-spacing: -0.012em;
+  background-color: var(--vetter-bg);
 }
 
 /* Custom Scrollbar */
@@ -23,17 +26,17 @@ body {
   height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--vetter-bg);
 }
 ::-webkit-scrollbar-thumb {
   background: #334155;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--vetter-yellow);
 }
 
-/* Number inputs without ugly spin arrows */
+/* Number inputs without arrows */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -43,37 +46,25 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Accent ranges */
+/* Range Sliders com Amarelo Vetter */
 input[type="range"] {
-  accent-color: #38bdf8;
+  accent-color: var(--vetter-yellow);
 }
 
-/* Glassmorphism Card Effect */
-.glass-card {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.6);
+/* Vetter Glow and Accent effects */
+.vetter-glow {
+  box-shadow: 0 0 25px -5px rgba(255, 183, 0, 0.25);
 }
 
-.glass-card-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.vetter-border-hover {
+  transition: all 0.2s ease-in-out;
 }
-.glass-card-hover:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.15);
-}
-
-/* Badge Pulse */
-@keyframes softPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.02); }
-}
-.pulse-badge {
-  animation: softPulse 3s infinite ease-in-out;
+.vetter-border-hover:hover {
+  border-color: rgba(255, 183, 0, 0.5);
+  box-shadow: 0 4px 20px -2px rgba(255, 183, 0, 0.12);
 }
 
-/* Row animations */
+/* Animations */
 .fade-in-item {
   animation: fadeIn 0.25s ease-out forwards;
 }
@@ -90,19 +81,18 @@ input[type="range"] {
 }
 
 /* ==========================================================================
-   PRINT STYLESHEET (PDF & IMPRESSÃO PROFISSIONAL A4)
+   PRINT STYLESHEET (PDF & IMPRESSÃO PROFISSIONAL A4 TIMBRADA VETTER)
    ========================================================================== */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm 10mm 12mm 10mm;
+    margin: 10mm 10mm 12mm 10mm;
   }
 
-  /* Reset layout for paper */
   html, body {
     background: #ffffff !important;
-    color: #0f172a !important;
-    font-size: 11px !important;
+    color: #1a1a1a !important;
+    font-size: 10.5px !important;
     line-height: 1.35 !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -110,16 +100,13 @@ input[type="range"] {
     print-color-adjust: exact !important;
   }
 
-  /* Hide interactive/form controls */
   .no-print,
   #simulatorForm,
-  #presetsBar,
   header,
   .print-hide {
     display: none !important;
   }
 
-  /* Full width container */
   main,
   .print-full-width {
     max-width: 100% !important;
@@ -128,7 +115,6 @@ input[type="range"] {
     padding: 0 !important;
   }
 
-  /* Columns reordering: make preview occupy 100% */
   .grid {
     display: block !important;
   }
@@ -138,76 +124,49 @@ input[type="range"] {
     width: 100% !important;
   }
 
-  /* Card and table styling for print */
   .print-card {
     background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #d1d5db !important;
     box-shadow: none !important;
     border-radius: 8px !important;
     margin-bottom: 12px !important;
     padding: 12px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    color: #0f172a !important;
+    color: #1f2937 !important;
   }
 
-  .print-card-header {
-    background: #0f172a !important;
-    color: #ffffff !important;
-    border: 1px solid #0f172a !important;
-  }
-  
-  .print-card-header * {
-    color: #ffffff !important;
-  }
-  
-  .print-card-header .text-slate-400 {
-    color: #cbd5e1 !important;
-  }
-
-  .print-card-header .text-sky-400 {
-    color: #38bdf8 !important;
-  }
-
-  /* Tables in Print */
+  /* Tabela Impressa */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
   }
 
   thead th {
-    background-color: #f1f5f9 !important;
-    color: #334155 !important;
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
     font-weight: 700 !important;
-    border-bottom: 2px solid #94a3b8 !important;
+    border-bottom: 2px solid #ffb700 !important;
     padding: 6px 8px !important;
   }
 
   tbody td {
-    color: #0f172a !important;
-    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1f2937 !important;
+    border-bottom: 1px solid #e5e7eb !important;
     padding: 6px 8px !important;
   }
 
   tfoot tr {
-    background-color: #f8fafc !important;
-    border-top: 2px solid #0f172a !important;
+    background-color: #fafafa !important;
+    border-top: 2px solid #111827 !important;
   }
 
   tfoot td {
-    color: #0f172a !important;
+    color: #111827 !important;
     font-weight: 800 !important;
     padding: 8px !important;
   }
 
-  /* Badges in Print */
-  .badge-print {
-    border: 1px solid #94a3b8 !important;
-    background: #f8fafc !important;
-    color: #0f172a !important;
-  }
-
-  /* Signature field for print */
   .print-signature {
     display: flex !important;
     justify-content: space-between;
@@ -217,7 +176,6 @@ input[type="range"] {
     break-inside: avoid;
   }
 
-  /* Show print-only elements */
   .print-only {
     display: block !important;
   }
