@@ -8,7 +8,7 @@ let extraLines = []; // Linhas adicionais de negociação personalizadas
 let paymentChart = null;
 
 // ==========================================================================
-// FORMATAÇÃO E HELPERS
+// FORMATAÇÃO E HELPERS MONETÁRIOS (MÁSCARAS BRL)
 // ==========================================================================
 export function formatCurrency(val) {
   return new Intl.NumberFormat('pt-BR', {
@@ -21,6 +21,23 @@ export function formatCurrency(val) {
 
 export function formatPct(val) {
   return (val || 0).toFixed(2) + '%';
+}
+
+// Converte número em formato digitável BRL: 2093725.72 -> "2.093.725,72"
+export function formatNumberToBRLInput(val) {
+  if (val === null || val === undefined || isNaN(val)) return '0,00';
+  return Number(val).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Converte string BRL formatada ("2.093.725,72") para float puro: 2093725.72
+export function parseBRLInputToNumber(str) {
+  if (!str) return 0;
+  const cleanDigits = String(str).replace(/\D/g, '');
+  if (!cleanDigits) return 0;
+  return parseInt(cleanDigits, 10) / 100;
 }
 
 export function getTodayYearMonth() {
@@ -68,7 +85,6 @@ function populateDevelopmentsSelect() {
 // RENDERIZAÇÃO DO CARD SUPERIOR DO EMPREENDIMENTO
 // ==========================================================================
 function renderDevelopmentCard(dev) {
-  // Atualiza na tela principal
   document.getElementById('devCardName').innerText = dev.name;
   document.getElementById('devCardAddress').innerText = dev.address;
   document.getElementById('devCardBeach').innerText = dev.distanceSea;
@@ -86,7 +102,7 @@ function renderDevelopmentCard(dev) {
     statusBadge.innerHTML = `<i class="fa-solid fa-person-digging text-[#ffb700]"></i> Em Obras • Entrega ${dev.deliveryLabel}`;
   }
 
-  // Atualiza também os elementos que aparecem no cabeçalho do PDF
+  // Atualiza cabeçalho do PDF
   document.getElementById('printDevName').innerText = dev.name;
   document.getElementById('printDevAddress').innerText = dev.address;
   document.getElementById('printDevDelivery').innerText = dev.deliveryLabel;
@@ -106,9 +122,9 @@ export function selectDevelopment(devId) {
   currentDev = found;
   renderDevelopmentCard(currentDev);
 
-  // Preenche dados padrão no formulário
+  // Preenche dados padrão no formulário com máscara BRL
   document.getElementById('propTitle').value = `${currentDev.name} - Unidade`;
-  document.getElementById('unitPrice').value = currentDev.defaultUnitPrice;
+  document.getElementById('unitPrice').value = formatNumberToBRLInput(currentDev.defaultUnitPrice);
 
   // Data base da proposta (hoje)
   const baseDate = document.getElementById('proposalBaseDate').value || getTodayYearMonth();
@@ -130,21 +146,34 @@ export function selectDevelopment(devId) {
   }
   document.getElementById('monthlyCountInput').value = calcCount;
 
-  // Carrega percentuais padrão do empreendimento
+  // Carrega valores e percentuais padrão
   const price = currentDev.defaultUnitPrice;
-  const entryVal = (price * (currentDev.defaultEntryPct / 100)).toFixed(2);
-  document.getElementById('entryValueInput').value = entryVal;
-  document.getElementById('entryPctRange').value = currentDev.defaultEntryPct;
+  const entryPct = currentDev.defaultEntryPct;
+  const entryVal = (price * (entryPct / 100));
+  
+  document.getElementById('entryValueInput').value = formatNumberToBRLInput(entryVal);
+  document.getElementById('entryPctInput').value = entryPct.toFixed(2);
+
+  // Trava de 10% mínimo: se padrão for menor que 10, ajusta range.min para 0
+  const entryRange = document.getElementById('entryPctRange');
+  if (entryPct < 10) {
+    entryRange.min = '0';
+    entryRange.value = entryPct;
+    document.getElementById('entryMinWarning').classList.remove('hidden');
+  } else {
+    entryRange.min = '10';
+    entryRange.value = entryPct;
+    document.getElementById('entryMinWarning').classList.add('hidden');
+  }
 
   document.getElementById('monthlyPctRange').value = currentDev.defaultMonthlyPct;
+  document.getElementById('monthlyPctInput').value = currentDev.defaultMonthlyPct.toFixed(1);
+
   document.getElementById('boostPctRange').value = currentDev.defaultBoostPct;
+  document.getElementById('boostPctInput').value = currentDev.defaultBoostPct.toFixed(1);
   document.getElementById('boostCountInput').value = currentDev.defaultBoostCount;
 
-  // Limpa linhas extras ao trocar empreendimento (ou mantém se desejar)
-  // extraLines = [];
   renderExtraLinesInputs();
-
-  // Dispara recálculo completo
   calculate();
 }
 
@@ -186,9 +215,6 @@ export function updateExtraLine(id, field, value) {
 
   if (field === 'pct') {
     line.pct = Math.max(0, parseFloat(value) || 0);
-  } else if (field === 'val') {
-    const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
-    line.pct = unitPrice > 0 ? ((parseFloat(value) || 0) / unitPrice) * 100 : 0;
   } else if (field === 'count') {
     line.count = Math.max(1, parseInt(value) || 1);
   } else if (field === 'title') {
@@ -214,21 +240,21 @@ function renderExtraLinesInputs() {
     return;
   }
 
-  const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
+  const unitPrice = parseBRLInputToNumber(document.getElementById('unitPrice').value);
 
-  container.innerHTML = extraLines.map((line, idx) => {
+  container.innerHTML = extraLines.map((line) => {
     const lineTotal = (unitPrice * (line.pct / 100));
     return `
-      <div class="fade-in-item bg-slate-900/90 border border-indigo-500/30 rounded-xl p-3 space-y-2 relative">
+      <div class="fade-in-item bg-[#181d24] border border-purple-500/30 rounded-xl p-3 space-y-2 relative">
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 flex-grow">
-            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
             <input type="text" value="${line.title}" 
               oninput="window.updateExtraLine('${line.id}', 'title', this.value)"
               placeholder="Descrição da Linha" 
-              class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white font-semibold focus:outline-none focus:border-indigo-400">
+              class="w-full bg-[#111418] border border-[#2d3644] rounded px-2 py-1 text-xs text-white font-semibold focus:outline-none focus:border-purple-400">
           </div>
-          <button type="button" onclick="window.removeExtraLine('${line.id}')" title="Excluir Linha" class="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-slate-800 transition">
+          <button type="button" onclick="window.removeExtraLine('${line.id}')" title="Excluir Linha" class="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-[#111418] transition">
             <i class="fa-solid fa-trash-can text-xs"></i>
           </button>
         </div>
@@ -239,7 +265,7 @@ function renderExtraLinesInputs() {
             <div class="flex items-center gap-1">
               <input type="number" step="0.1" min="0" max="80" value="${line.pct.toFixed(2)}"
                 oninput="window.updateExtraLine('${line.id}', 'pct', this.value)"
-                class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-indigo-300 font-mono font-bold focus:outline-none focus:border-indigo-400">
+                class="w-full bg-[#111418] border border-[#2d3644] rounded px-2 py-1 text-xs text-purple-300 font-mono font-bold focus:outline-none focus:border-purple-400">
               <span class="text-slate-400 text-[10px]">%</span>
             </div>
           </div>
@@ -248,12 +274,12 @@ function renderExtraLinesInputs() {
             <label class="text-[10px] text-slate-400 block">Qtd (Vezes)</label>
             <input type="number" min="1" max="60" value="${line.count}"
               oninput="window.updateExtraLine('${line.id}', 'count', this.value)"
-              class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white text-center font-mono focus:outline-none focus:border-indigo-400">
+              class="w-full bg-[#111418] border border-[#2d3644] rounded px-2 py-1 text-xs text-white text-center font-mono focus:outline-none focus:border-purple-400">
           </div>
 
           <div class="col-span-5">
             <label class="text-[10px] text-slate-400 block text-right">Subtotal</label>
-            <div class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-indigo-300 text-right font-mono font-bold">
+            <div class="w-full bg-[#111418] border border-[#2d3644] rounded px-2 py-1 text-xs text-purple-300 text-right font-mono font-bold">
               ${formatCurrency(lineTotal)}
             </div>
           </div>
@@ -263,7 +289,7 @@ function renderExtraLinesInputs() {
           <input type="text" value="${line.details}"
             oninput="window.updateExtraLine('${line.id}', 'details', this.value)"
             placeholder="Vencimento / Observações (ex: Dez/2027 ou Carro na entrega)"
-            class="w-full bg-slate-800/80 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-400">
+            class="w-full bg-[#111418] border border-[#2d3644] rounded px-2 py-1 text-[11px] text-slate-300 placeholder-slate-500 focus:outline-none focus:border-purple-400">
         </div>
       </div>
     `;
@@ -274,40 +300,36 @@ function renderExtraLinesInputs() {
 // MOTOR DE CÁLCULO E SINCRONIZAÇÃO
 // ==========================================================================
 export function calculate() {
-  // 1. Dados Básicos
   const propTitle = document.getElementById('propTitle').value || currentDev.name;
   const clientName = document.getElementById('clientName').value || 'Cliente Especial';
   const consultantName = document.getElementById('consultantName').value || 'Consultor Vetter';
-  const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
-
-  let entryVal = parseFloat(document.getElementById('entryValueInput').value) || 0;
+  
+  // Leitura com máscara BRL
+  const unitPrice = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+  let entryVal = parseBRLInputToNumber(document.getElementById('entryValueInput').value);
+  
   let monthlyPct = parseFloat(document.getElementById('monthlyPctRange').value) || 0;
   let monthlyCount = parseInt(document.getElementById('monthlyCountInput').value) || 1;
 
   let boostPct = parseFloat(document.getElementById('boostPctRange').value) || 0;
   let boostCount = parseInt(document.getElementById('boostCountInput').value) || 0;
 
-  const baseDateVal = document.getElementById('proposalBaseDate').value;
   const deliveryDateVal = document.getElementById('deliveryDate').value;
 
-  // 2. Percentual de Entrada
+  // Cálculo da Entrada %
   const entryPct = unitPrice > 0 ? (entryVal / unitPrice) * 100 : 0;
-  document.getElementById('entryPctRange').value = entryPct.toFixed(4);
-  document.getElementById('entryPctLabel').innerText = formatPct(entryPct);
-  document.getElementById('monthlyPctLabel').innerText = formatPct(monthlyPct);
-  document.getElementById('boostPctLabel').innerText = formatPct(boostPct);
 
-  // 3. Totais Mensais
+  // Totais Mensais
   const monthlyTotal = (unitPrice * monthlyPct) / 100;
   const monthlyUnit = monthlyCount > 0 ? monthlyTotal / monthlyCount : 0;
   document.getElementById('monthlyTotalDisplay').value = formatCurrency(monthlyTotal);
 
-  // 4. Totais de Reforços / Balões
+  // Totais de Reforços / Balões
   const boostTotal = (unitPrice * boostPct) / 100;
   const boostUnit = boostCount > 0 ? boostTotal / boostCount : 0;
   document.getElementById('boostTotalDisplay').value = formatCurrency(boostTotal);
 
-  // 5. Linhas Adicionais de Negociação
+  // Linhas Adicionais de Negociação
   let extraLinesTotalPct = 0;
   let extraLinesTotalVal = 0;
   extraLines.forEach(line => {
@@ -315,18 +337,14 @@ export function calculate() {
     extraLinesTotalVal += (unitPrice * (line.pct / 100));
   });
 
-  // Atualiza subtotais das caixas de linhas extras se estiverem abertas
-  const extraContainers = document.querySelectorAll('#extraLinesContainer input[type="number"]');
-  // apenas render se necessário
-
-  // 6. Saldo Residual de Chaves
+  // Saldo Residual de Chaves
   const keysPct = Math.max(0, 100 - entryPct - monthlyPct - boostPct - extraLinesTotalPct);
   const keysValue = (unitPrice * keysPct) / 100;
 
   document.getElementById('keysPctLabel').innerText = formatPct(keysPct);
   document.getElementById('keysValueDisplay').innerText = formatCurrency(keysValue);
 
-  // 7. Validação de Alertas
+  // Validação de Alertas
   const alertEl = document.getElementById('keyWarningAlert');
   const alertText = document.getElementById('keyWarningText');
   const totalFlowBeforeKeys = entryPct + monthlyPct + boostPct + extraLinesTotalPct;
@@ -343,7 +361,7 @@ export function calculate() {
     alertEl.classList.add('hidden');
   }
 
-  // 8. Cabeçalho da Proposta e Visualização
+  // Cabeçalho da Proposta e Visualização
   document.getElementById('outPropTitle').innerText = propTitle;
   document.getElementById('outClientName').innerText = clientName;
   document.getElementById('outConsultantName').innerText = consultantName;
@@ -372,7 +390,7 @@ export function calculate() {
     extraMetricCard.classList.add('hidden');
   }
 
-  // 9. Renderizar Tabela Discriminativa de Fluxo
+  // Renderizar Tabela Discriminativa de Fluxo
   renderFlowTable({
     unitPrice,
     entryVal,
@@ -391,7 +409,7 @@ export function calculate() {
     extraLines
   });
 
-  // 10. Atualizar Gráfico Doughnut Chart.js
+  // Atualizar Gráfico Doughnut Chart.js
   updateChartData({
     entryPct,
     monthlyPct,
@@ -460,7 +478,7 @@ function renderFlowTable(data) {
   `;
 
   // Linhas Adicionais de Negociação
-  data.extraLines.forEach((line, index) => {
+  data.extraLines.forEach((line) => {
     const lineTotal = (data.unitPrice * (line.pct / 100));
     const lineUnit = line.count > 0 ? lineTotal / line.count : 0;
     html += `
@@ -500,7 +518,6 @@ function renderFlowTable(data) {
 
   tbody.innerHTML = html;
 
-  // Atualizar rodapé total
   const totalCalculated = data.entryVal + data.monthlyTotal + data.boostTotal + 
     data.extraLines.reduce((acc, l) => acc + (data.unitPrice * (l.pct / 100)), 0) + 
     data.keysValue;
@@ -556,7 +573,6 @@ function updateChartData({ entryPct, monthlyPct, boostPct, extraLines, keysPct }
   ];
   const bgColors = ['#10b981', '#ffb700', '#38bdf8'];
 
-  // Cores para linhas adicionais
   const extraPalette = ['#a855f7', '#ec4899', '#06b6d4', '#14b8a6'];
   extraLines.forEach((line, idx) => {
     labels.push(line.title || `Negociação ${idx + 1}`);
@@ -573,7 +589,6 @@ function updateChartData({ entryPct, monthlyPct, boostPct, extraLines, keysPct }
   paymentChart.data.datasets[0].backgroundColor = bgColors;
   paymentChart.update();
 
-  // Atualiza também os badges da legenda no DOM
   renderChartLegend(labels, data, bgColors);
 }
 
@@ -604,7 +619,7 @@ function bindEvents() {
     });
   }
 
-  // Mudança da Data Base da Proposta -> recalcula número de parcelas
+  // Data Base da Proposta -> recalcula parcelas mensais
   const baseDateInput = document.getElementById('proposalBaseDate');
   if (baseDateInput) {
     baseDateInput.addEventListener('change', () => {
@@ -616,7 +631,7 @@ function bindEvents() {
     });
   }
 
-  // Mudança manual da Data de Entrega
+  // Data de Entrega manual
   const deliveryDateInput = document.getElementById('deliveryDate');
   if (deliveryDateInput) {
     deliveryDateInput.addEventListener('change', () => {
@@ -629,37 +644,145 @@ function bindEvents() {
     });
   }
 
-  // Inputs Principais
+  // Inputs de Texto Gerais
   document.getElementById('propTitle').addEventListener('input', calculate);
   document.getElementById('clientName').addEventListener('input', calculate);
   document.getElementById('consultantName').addEventListener('input', calculate);
-  document.getElementById('unitPrice').addEventListener('input', () => {
-    // Ao mudar o preço, reajusta a entrada em R$ mantendo a proporção ou recalcula
-    const price = parseFloat(document.getElementById('unitPrice').value) || 0;
-    const entryPct = parseFloat(document.getElementById('entryPctRange').value) || 0;
-    document.getElementById('entryValueInput').value = ((price * entryPct) / 100).toFixed(2);
+
+  // MÁSCARA MONETÁRIA: Valor de Tabela do Imóvel
+  const unitPriceInput = document.getElementById('unitPrice');
+  unitPriceInput.addEventListener('input', (e) => {
+    const rawDigits = e.target.value.replace(/\D/g, '');
+    const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
+    e.target.value = formatNumberToBRLInput(num);
+
+    // Reajusta o valor nominal da entrada mantendo o % atual digitado
+    const currentEntryPct = parseFloat(document.getElementById('entryPctInput').value) || 10;
+    const newEntryVal = (num * currentEntryPct) / 100;
+    document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
+
     calculate();
   });
 
-  // Entrada em R$ -> atualiza Slider
-  document.getElementById('entryValueInput').addEventListener('input', () => {
+  // MÁSCARA MONETÁRIA: Entrada em R$
+  const entryValueInput = document.getElementById('entryValueInput');
+  entryValueInput.addEventListener('input', (e) => {
+    const rawDigits = e.target.value.replace(/\D/g, '');
+    const num = rawDigits ? parseInt(rawDigits, 10) / 100 : 0;
+    e.target.value = formatNumberToBRLInput(num);
+
+    const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+    const computedPct = price > 0 ? (num / price) * 100 : 0;
+
+    document.getElementById('entryPctInput').value = computedPct.toFixed(2);
+
+    // Trava de 10% mínimo: se menor que 10, expande o slider e exibe aviso
+    const range = document.getElementById('entryPctRange');
+    if (computedPct < 10) {
+      range.min = '0';
+      range.value = computedPct;
+      document.getElementById('entryMinWarning').classList.remove('hidden');
+    } else {
+      range.min = '10';
+      range.value = computedPct;
+      document.getElementById('entryMinWarning').classList.add('hidden');
+    }
+
     calculate();
   });
 
-  // Slider de Entrada -> atualiza R$
-  document.getElementById('entryPctRange').addEventListener('input', (e) => {
+  // PERCENTUAL DE ENTRADA MANUAL (Operador digita diretamente o %)
+  const entryPctInput = document.getElementById('entryPctInput');
+  entryPctInput.addEventListener('input', (e) => {
     const pct = parseFloat(e.target.value) || 0;
-    const price = parseFloat(document.getElementById('unitPrice').value) || 0;
-    document.getElementById('entryValueInput').value = ((price * pct) / 100).toFixed(2);
+    const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+    const newEntryVal = (price * pct) / 100;
+    
+    document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
+
+    const range = document.getElementById('entryPctRange');
+    if (pct < 10) {
+      range.min = '0';
+      range.value = pct;
+      document.getElementById('entryMinWarning').classList.remove('hidden');
+    } else {
+      range.min = '10';
+      range.value = pct;
+      document.getElementById('entryMinWarning').classList.add('hidden');
+    }
+
     calculate();
   });
 
-  // Mensais
-  document.getElementById('monthlyPctRange').addEventListener('input', calculate);
+  // SLIDER DE ENTRADA
+  const entryPctRange = document.getElementById('entryPctRange');
+  entryPctRange.addEventListener('input', (e) => {
+    const pct = parseFloat(e.target.value) || 0;
+    document.getElementById('entryPctInput').value = pct.toFixed(2);
+
+    const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+    const newEntryVal = (price * pct) / 100;
+    document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
+
+    if (pct >= 10) {
+      document.getElementById('entryMinWarning').classList.add('hidden');
+    }
+
+    calculate();
+  });
+
+  // BOTÃO RESTAURAR 10% MÍNIMO DA ENTRADA
+  const btnRestoreMinEntry = document.getElementById('btnRestoreMinEntry');
+  if (btnRestoreMinEntry) {
+    btnRestoreMinEntry.addEventListener('click', () => {
+      document.getElementById('entryPctInput').value = '10.00';
+      const range = document.getElementById('entryPctRange');
+      range.min = '10';
+      range.value = '10';
+
+      const price = parseBRLInputToNumber(document.getElementById('unitPrice').value);
+      const newEntryVal = (price * 10) / 100;
+      document.getElementById('entryValueInput').value = formatNumberToBRLInput(newEntryVal);
+
+      document.getElementById('entryMinWarning').classList.add('hidden');
+      calculate();
+    });
+  }
+
+  // PERCENTUAL MENSAL MANUAL
+  const monthlyPctInput = document.getElementById('monthlyPctInput');
+  const monthlyPctRange = document.getElementById('monthlyPctRange');
+
+  monthlyPctInput.addEventListener('input', (e) => {
+    const pct = parseFloat(e.target.value) || 0;
+    monthlyPctRange.value = pct;
+    calculate();
+  });
+
+  monthlyPctRange.addEventListener('input', (e) => {
+    const pct = parseFloat(e.target.value) || 0;
+    monthlyPctInput.value = pct.toFixed(1);
+    calculate();
+  });
+
   document.getElementById('monthlyCountInput').addEventListener('input', calculate);
 
-  // Balões
-  document.getElementById('boostPctRange').addEventListener('input', calculate);
+  // PERCENTUAL DE REFORÇOS / BALÕES MANUAL
+  const boostPctInput = document.getElementById('boostPctInput');
+  const boostPctRange = document.getElementById('boostPctRange');
+
+  boostPctInput.addEventListener('input', (e) => {
+    const pct = parseFloat(e.target.value) || 0;
+    boostPctRange.value = pct;
+    calculate();
+  });
+
+  boostPctRange.addEventListener('input', (e) => {
+    const pct = parseFloat(e.target.value) || 0;
+    boostPctInput.value = pct.toFixed(1);
+    calculate();
+  });
+
   document.getElementById('boostCountInput').addEventListener('input', calculate);
 
   // Botão Adicionar Linha de Negociação
@@ -680,7 +803,7 @@ function bindEvents() {
   }
 }
 
-// Tornar helpers disponíveis globalmente para callbacks inline
+// Helpers globais para callbacks inline
 window.updateExtraLine = updateExtraLine;
 window.removeExtraLine = removeExtraLine;
 window.addExtraLine = addExtraLine;
@@ -689,7 +812,6 @@ window.addExtraLine = addExtraLine;
 // INICIALIZAÇÃO DA APLICAÇÃO
 // ==========================================================================
 window.addEventListener('DOMContentLoaded', () => {
-  // Define data de hoje no campo base da proposta
   const baseDateInput = document.getElementById('proposalBaseDate');
   if (baseDateInput) {
     baseDateInput.value = getTodayYearMonth();
@@ -698,5 +820,5 @@ window.addEventListener('DOMContentLoaded', () => {
   populateDevelopmentsSelect();
   initChart();
   bindEvents();
-  selectDevelopment('bal_harbour'); // Inicia com Bal Harbour por padrão
+  selectDevelopment('bal_harbour');
 });

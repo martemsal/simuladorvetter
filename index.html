@@ -244,12 +244,12 @@
               </div>
             </div>
 
-            <!-- Valor de Tabela -->
+            <!-- Valor de Tabela com Máscara BRL -->
             <div>
               <label class="block text-slate-300 font-semibold mb-1">Valor de Tabela do Imóvel (R$)</label>
               <div class="relative">
-                <span class="absolute left-3.5 top-2.5 text-[#ffb700] font-black">R$</span>
-                <input type="number" id="unitPrice" value="2093725.72" step="1000" class="w-full bg-[#111418] border border-[#2d3644] rounded-xl pl-11 pr-3 py-2.5 text-white font-mono font-black text-sm focus:outline-none focus:border-[#ffb700] transition">
+                <span class="absolute left-3.5 top-2.5 text-[#ffb700] font-black text-sm">R$</span>
+                <input type="text" id="unitPrice" inputmode="numeric" value="2.093.725,72" placeholder="0,00" class="w-full bg-[#111418] border border-[#2d3644] rounded-xl pl-11 pr-3 py-2.5 text-white font-mono font-black text-sm focus:outline-none focus:border-[#ffb700] transition">
               </div>
             </div>
 
@@ -257,33 +257,51 @@
 
             <!-- 1. Entrada / Ato Inicial -->
             <div class="bg-[#111418] p-3 rounded-xl border border-[#2d3644]">
-              <div class="flex justify-between items-center mb-1">
+              <div class="flex justify-between items-center mb-1.5">
                 <label class="text-slate-200 font-semibold flex items-center gap-1.5">
                   <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 1. Entrada / Ato Inicial
                 </label>
-                <span id="entryPctLabel" class="text-emerald-400 font-bold font-mono text-xs">11.94%</span>
+                <!-- Percentual Editável Manualmente -->
+                <div class="flex items-center gap-1 bg-[#181d24] border border-[#2d3644] px-1.5 py-0.5 rounded-lg focus-within:border-emerald-400">
+                  <input type="number" id="entryPctInput" step="0.01" min="0" max="100" value="11.94" class="w-16 bg-transparent text-emerald-400 font-bold font-mono text-xs text-right focus:outline-none">
+                  <span class="text-emerald-400 font-bold text-xs">%</span>
+                </div>
               </div>
+
               <div class="grid grid-cols-12 gap-2 items-center">
                 <div class="col-span-6">
-                  <input type="range" id="entryPctRange" min="5" max="60" step="0.01" value="11.94" class="w-full accent-emerald-500 cursor-pointer">
+                  <input type="range" id="entryPctRange" min="10" max="60" step="0.01" value="11.94" class="w-full accent-emerald-500 cursor-pointer" title="Trava mínima padrão de 10% (editável)">
                 </div>
                 <div class="col-span-6">
                   <div class="relative">
-                    <span class="absolute left-2 top-1.5 text-slate-400 text-[10px]">R$</span>
-                    <input type="number" id="entryValueInput" value="250000" step="1000" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg pl-7 pr-2 py-1.5 text-slate-100 font-mono text-right text-xs focus:outline-none focus:border-emerald-400">
+                    <span class="absolute left-2.5 top-1.5 text-slate-400 text-xs font-semibold">R$</span>
+                    <input type="text" id="entryValueInput" inputmode="numeric" value="250.000,00" placeholder="0,00" class="w-full bg-[#181d24] border border-[#2d3644] rounded-lg pl-8 pr-2 py-1.5 text-slate-100 font-mono text-right text-xs focus:outline-none focus:border-emerald-400">
                   </div>
                 </div>
+              </div>
+
+              <!-- Trava / Alerta de Entrada Mínima 10% -->
+              <div id="entryMinWarning" class="hidden mt-2 p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 flex items-center justify-between">
+                <span class="flex items-center gap-1">
+                  <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Entrada abaixo de 10% (exceção comercial).
+                </span>
+                <button type="button" id="btnRestoreMinEntry" class="underline text-amber-400 hover:text-amber-200 font-semibold ml-2">Ajustar p/ 10%</button>
               </div>
             </div>
 
             <!-- 2. Parcelas Mensais (Obra) -->
             <div class="bg-[#111418] p-3 rounded-xl border border-[#2d3644]">
-              <div class="flex justify-between items-center mb-1">
+              <div class="flex justify-between items-center mb-1.5">
                 <label class="text-slate-200 font-semibold flex items-center gap-1.5">
                   <span class="w-2.5 h-2.5 rounded-full bg-[#ffb700]"></span> 2. Parcelas Mensais (Obra)
                 </label>
-                <span id="monthlyPctLabel" class="text-[#ffb700] font-bold font-mono text-xs">45.00%</span>
+                <!-- Percentual Editável Manualmente -->
+                <div class="flex items-center gap-1 bg-[#181d24] border border-[#2d3644] px-1.5 py-0.5 rounded-lg focus-within:border-[#ffb700]">
+                  <input type="number" id="monthlyPctInput" step="0.1" min="0" max="100" value="45.0" class="w-16 bg-transparent text-[#ffb700] font-bold font-mono text-xs text-right focus:outline-none">
+                  <span class="text-[#ffb700] font-bold text-xs">%</span>
+                </div>
               </div>
+
               <div class="grid grid-cols-12 gap-2 items-center">
                 <div class="col-span-4">
                   <input type="range" id="monthlyPctRange" min="0" max="80" step="0.5" value="45" class="w-full accent-[#ffb700] cursor-pointer">
@@ -305,12 +323,17 @@
 
             <!-- 3. Reforços Anuais (Balões) -->
             <div class="bg-[#111418] p-3 rounded-xl border border-[#2d3644]">
-              <div class="flex justify-between items-center mb-1">
+              <div class="flex justify-between items-center mb-1.5">
                 <label class="text-slate-200 font-semibold flex items-center gap-1.5">
                   <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span> 3. Reforços / Balões Anuais
                 </label>
-                <span id="boostPctLabel" class="text-sky-400 font-bold font-mono text-xs">20.00%</span>
+                <!-- Percentual Editável Manualmente -->
+                <div class="flex items-center gap-1 bg-[#181d24] border border-[#2d3644] px-1.5 py-0.5 rounded-lg focus-within:border-sky-400">
+                  <input type="number" id="boostPctInput" step="0.1" min="0" max="60" value="20.0" class="w-16 bg-transparent text-sky-400 font-bold font-mono text-xs text-right focus:outline-none">
+                  <span class="text-sky-400 font-bold text-xs">%</span>
+                </div>
               </div>
+
               <div class="grid grid-cols-12 gap-2 items-center">
                 <div class="col-span-4">
                   <input type="range" id="boostPctRange" min="0" max="50" step="0.5" value="20" class="w-full accent-sky-400 cursor-pointer">
